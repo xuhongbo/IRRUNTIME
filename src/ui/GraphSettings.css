@@ -1,0 +1,51 @@
+.graph-settings {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+}
+
+.graph-settings-section {
+  flex: 1;
+  background: #1e1e1e;
+  border: 1px solid #2b2b2b;
+  border-radius: 8px;
+  padding: 16px;
+  color: #f0f0f0;
+}
+
+.graph-settings-title {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.contract-group {
+  margin-bottom: 16px;
+}
+
+.contract-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.contract-row {
+  display: grid;
+  grid-template-columns: 1fr 140px auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.contract-row textarea {
+  min-height: 60px;
+}
+
+.contract-empty {
+  color: #9f9f9f;
+  margin-bottom: 8px;
+}
+
+.contract-name {
+  font-weight: 600;
+}

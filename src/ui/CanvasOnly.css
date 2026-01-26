@@ -1,0 +1,35 @@
+.canvas-only-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #0f1117;
+  color: #e7e7e7;
+}
+
+.canvas-only-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid #232733;
+  background: #151821;
+}
+
+.canvas-only-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.canvas-only-subtitle {
+  font-size: 12px;
+  color: #8e93a5;
+}
+
+.canvas-only-actions .button {
+  margin-left: 8px;
+}
+
+.canvas-only-body {
+  flex: 1;
+  min-height: 0;
+}

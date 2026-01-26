@@ -1,0 +1,51 @@
+{
+  "runAtUtc": "2026-01-26T02:59:54Z",
+  "devServer": "http://127.0.0.1:5173/",
+  "consoleErrors": [],
+  "screenshots": [
+    "src/assets/mcp/mcp-smoke-1.png",
+    "src/assets/mcp/mcp-smoke-2.png"
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "action": "Open dev server URL",
+      "result": "Loaded Graph Studio Demo without console errors"
+    },
+    {
+      "step": 2,
+      "action": "Click Run",
+      "result": "Runner shows Welcome message and Next button"
+    },
+    {
+      "step": 3,
+      "action": "Click Next",
+      "result": "Runner shows Make a Choice with options"
+    },
+    {
+      "step": 4,
+      "action": "Choose Happy path",
+      "result": "Delay view shown, then Subgraph view appears"
+    },
+    {
+      "step": 5,
+      "action": "Reset, then Step",
+      "result": "Trace seq increased to 1 and status paused"
+    },
+    {
+      "step": 6,
+      "action": "Toggle breakpoint on const-flag-value, Run",
+      "result": "Execution paused before breakpoint node"
+    },
+    {
+      "step": 7,
+      "action": "Edit WaitForChoice Choice A label via Inspector and Apply",
+      "result": "Graph reset; choice label updated to 'Proceed'"
+    },
+    {
+      "step": 8,
+      "action": "Run and choose Error path",
+      "result": "Divide throws division by zero; onError path taken; error trace recorded"
+    }
+  ]
+}
