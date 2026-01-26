@@ -16,6 +16,14 @@ import { Palette } from "./ui/Palette";
 import { CanvasOnly } from "./ui/CanvasOnly";
 import { useGraphSync } from "./studio/sync";
 import { normalizeContract } from "./engine/contract";
+import {
+  canRedo,
+  canUndo,
+  createHistoryState,
+  pushHistory,
+  redoHistory,
+  undoHistory,
+} from "./studio/history";
 import "./App.css";
 
 export default function App() {
@@ -42,6 +50,9 @@ const StudioApp = () => {
   const pendingSnapshotRef = useRef(false);
   const [isRemoteSyncing, setIsRemoteSyncing] = useState(false);
   const [graphInputs, setGraphInputs] = useState<Record<string, unknown>>({});
+  const historyRef = useRef(createHistoryState(80));
+  const pendingHistoryRef = useRef(false);
+  const historyActionRef = useRef<"undo" | "redo" | "remote" | null>(null);
   const contract = useMemo(() => normalizeContract(graph.contract), [graph.contract]);
 
   const buildDefaultInputs = (nextContract: typeof contract, current: Record<string, unknown>) => {
@@ -67,16 +78,32 @@ const StudioApp = () => {
     setGraphInputs((current) => buildDefaultInputs(contract, current));
   }, [contract]);
 
+  useEffect(() => {
+    if (historyActionRef.current === "remote") {
+      historyActionRef.current = null;
+      return;
+    }
+    if (historyActionRef.current === "undo" || historyActionRef.current === "redo") {
+      historyActionRef.current = null;
+      return;
+    }
+    if (!pendingHistoryRef.current) return;
+    pendingHistoryRef.current = false;
+    historyRef.current = pushHistory(historyRef.current, graphRef.current);
+  }, [graph]);
+
   const sync = useGraphSync({
     graph,
     mode: "main",
     onApplyGraph: (next) => {
       setIsRemoteSyncing(true);
+      historyActionRef.current = "remote";
       updateGraph(next);
       setTimeout(() => setIsRemoteSyncing(false), 0);
     },
     onApplyCommand: (command) => {
       setIsRemoteSyncing(true);
+      historyActionRef.current = "remote";
       updateGraph(applyCommand(graphRef.current, command));
       setTimeout(() => setIsRemoteSyncing(false), 0);
     },
@@ -108,12 +135,14 @@ const StudioApp = () => {
 
   const applyProps = (nodeId: string, props: Record<string, unknown>) => {
     const command = { type: "SET_PROP", nodeId, props } as const;
+    pendingHistoryRef.current = true;
     updateGraph(applyCommand(graphRef.current, command));
     sync.sendCommand(command);
   };
 
   const addNode = (node: Graph["nodes"][number]) => {
     const command = { type: "ADD_NODE", node } as const;
+    pendingHistoryRef.current = true;
     updateGraph(applyCommand(graphRef.current, command));
     sync.sendCommand(command);
     send({ type: "SELECT_NODE", nodeId: node.id });
@@ -121,12 +150,14 @@ const StudioApp = () => {
 
   const deleteNode = (nodeId: string) => {
     const command = { type: "DELETE_NODE", nodeId } as const;
+    pendingHistoryRef.current = true;
     updateGraph(applyCommand(graphRef.current, command));
     sync.sendCommand(command);
     send({ type: "SELECT_NODE", nodeId: null });
   };
 
   const handleCommand = (command: Parameters<typeof applyCommand>[1]) => {
+    pendingHistoryRef.current = true;
     updateGraph(applyCommand(graphRef.current, command));
     sync.sendCommand(command);
   };
@@ -138,9 +169,50 @@ const StudioApp = () => {
 
   const applyContract = (nextContract: typeof contract) => {
     const command = { type: "SET_CONTRACT", contract: nextContract } as const;
+    pendingHistoryRef.current = true;
     updateGraph(applyCommand(graphRef.current, command));
     sync.sendCommand(command);
   };
+
+  const handleUndo = () => {
+    const result = undoHistory(historyRef.current, graphRef.current);
+    if (!result.graph) return;
+    historyRef.current = result.state;
+    historyActionRef.current = "undo";
+    pendingSnapshotRef.current = true;
+    updateGraph(result.graph);
+  };
+
+  const handleRedo = () => {
+    const result = redoHistory(historyRef.current, graphRef.current);
+    if (!result.graph) return;
+    historyRef.current = result.state;
+    historyActionRef.current = "redo";
+    pendingSnapshotRef.current = true;
+    updateGraph(result.graph);
+  };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isMac = window.navigator.platform.toLowerCase().includes("mac");
+      const mod = isMac ? event.metaKey : event.ctrlKey;
+      if (!mod) return;
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      }
+      if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return (
     <div className="app" data-testid="studio-root">
@@ -150,6 +222,22 @@ const StudioApp = () => {
           <div className="app-subtitle">Blueprints semantics with n8n-style metadata UI</div>
         </div>
         <div className="app-actions">
+          <button
+            className="button"
+            data-testid="undo"
+            disabled={!canUndo(historyRef.current)}
+            onClick={handleUndo}
+          >
+            Undo
+          </button>
+          <button
+            className="button"
+            data-testid="redo"
+            disabled={!canRedo(historyRef.current)}
+            onClick={handleRedo}
+          >
+            Redo
+          </button>
           <button
             className="button"
             data-testid="open-canvas-window"
@@ -263,6 +351,7 @@ const StudioApp = () => {
             onChange={(draft) => send({ type: "JSON_EDIT", draft })}
             onApply={() => {
               pendingSnapshotRef.current = true;
+              pendingHistoryRef.current = true;
               send({ type: "APPLY_JSON" });
             }}
             onReset={() => send({ type: "SYNC_JSON", draft: stringifyGraph(graph) })}
