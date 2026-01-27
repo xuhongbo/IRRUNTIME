@@ -3,7 +3,27 @@ import type { Registry } from "../engine/registry";
 import type { Command } from "../studio/commands";
 import { ReteCanvas } from "../studio/rete/ReteCanvas";
 import type { ValidationError } from "../engine/validator";
-import "./GraphViewer.css";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Tooltip from "@mui/material/Tooltip";
+import Divider from "@mui/material/Divider";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+
+import GridOnIcon from "@mui/icons-material/GridOn";
+import GridOffIcon from "@mui/icons-material/GridOff";
+import AlignHorizontalLeftIcon from "@mui/icons-material/AlignHorizontalLeft";
+import AlignHorizontalCenterIcon from "@mui/icons-material/AlignHorizontalCenter";
+import AlignHorizontalRightIcon from "@mui/icons-material/AlignHorizontalRight";
+import AlignVerticalTopIcon from "@mui/icons-material/AlignVerticalTop";
+import AlignVerticalCenterIcon from "@mui/icons-material/AlignVerticalCenter";
+import AlignVerticalBottomIcon from "@mui/icons-material/AlignVerticalBottom";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import DistributeHorizontalIcon from "@mui/icons-material/FormatAlignJustify"; // Approximation
+import DistributeVerticalIcon from "@mui/icons-material/VerticalAlignCenter"; // Approximation
 
 type GraphViewerProps = {
   graph: Graph;
@@ -45,49 +65,7 @@ export const GraphViewer = ({
   onCommand,
 }: GraphViewerProps) => {
   return (
-    <div className="graph-viewer">
-      <div className="graph-header">
-        <div>
-          <div className="graph-title">图编辑器</div>
-          <div className="graph-subtitle">图标识：{graph.id}</div>
-          <div className="graph-hint">提示：拖拽空白处平移，滚轮缩放，按住 Ctrl/⌘ 可多选。</div>
-        </div>
-        <div className="graph-meta">
-          <span>节点数：{graph.nodes.length}</span>
-          <div className="graph-tools">
-            <button className="button" onClick={onToggleSnap}>
-              {snapToGrid ? "网格对齐：开" : "网格对齐：关"}
-            </button>
-            <button className="button" onClick={() => onAlign?.("left")}>
-              左对齐
-            </button>
-            <button className="button" onClick={() => onAlign?.("top")}>
-              顶对齐
-            </button>
-            <button className="button" onClick={() => onAlign?.("centerX")}>
-              水平居中
-            </button>
-            <button className="button" onClick={() => onAlign?.("centerY")}>
-              垂直居中
-            </button>
-            <button className="button" onClick={() => onAlign?.("right")}>
-              右对齐
-            </button>
-            <button className="button" onClick={() => onAlign?.("bottom")}>
-              底对齐
-            </button>
-            <button className="button" onClick={() => onDistribute?.("horizontal")}>
-              水平分布
-            </button>
-            <button className="button" onClick={() => onDistribute?.("vertical")}>
-              垂直分布
-            </button>
-            <button className="button" onClick={onAutoLayout}>
-              自动布局
-            </button>
-          </div>
-        </div>
-      </div>
+    <Box sx={{ position: "relative", width: "100%", height: "100%", bgcolor: "#fafafa", overflow: "hidden" }}>
       <ReteCanvas
         graph={graph}
         registry={registry}
@@ -103,6 +81,69 @@ export const GraphViewer = ({
         onSelectNode={onSelectNode}
         onSelectNodes={onSelectNodes}
       />
-    </div>
+      
+      {/* Overlay Toolbar */}
+      <Paper
+        elevation={0}
+        sx={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          p: 0.5,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          zIndex: 10,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "rgba(255, 255, 255, 0.8)",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1 }}>
+            <Typography variant="subtitle2" color="text.secondary" fontWeight={600}>
+                {graph.id}
+            </Typography>
+            <Chip size="small" label={`${graph.nodes.length} nodes`} variant="outlined" sx={{ height: 20, fontSize: "0.65rem", borderColor: "divider" }} />
+        </Stack>
+        <Divider orientation="vertical" flexItem />
+        <ToggleButtonGroup size="small" exclusive>
+          <Tooltip title="Snap to Grid">
+            <ToggleButton value="snap" selected={snapToGrid} onChange={onToggleSnap} sx={{ border: "none" }}>
+               {snapToGrid ? <GridOnIcon fontSize="small" /> : <GridOffIcon fontSize="small" />}
+            </ToggleButton>
+          </Tooltip>
+        </ToggleButtonGroup>
+        
+        <Divider orientation="vertical" flexItem />
+        
+        <ToggleButtonGroup size="small" sx={{ border: "none" }}>
+            <Tooltip title="Align Left"><ToggleButton value="left" onClick={() => onAlign?.("left")} sx={{ border: "none" }}><AlignHorizontalLeftIcon fontSize="small"/></ToggleButton></Tooltip>
+            <Tooltip title="Align Center"><ToggleButton value="centerX" onClick={() => onAlign?.("centerX")} sx={{ border: "none" }}><AlignHorizontalCenterIcon fontSize="small"/></ToggleButton></Tooltip>
+            <Tooltip title="Align Right"><ToggleButton value="right" onClick={() => onAlign?.("right")} sx={{ border: "none" }}><AlignHorizontalRightIcon fontSize="small"/></ToggleButton></Tooltip>
+        </ToggleButtonGroup>
+
+        <Divider orientation="vertical" flexItem />
+
+        <ToggleButtonGroup size="small">
+             <Tooltip title="Align Top"><ToggleButton value="top" onClick={() => onAlign?.("top")} sx={{ border: "none" }}><AlignVerticalTopIcon fontSize="small"/></ToggleButton></Tooltip>
+             <Tooltip title="Align Middle"><ToggleButton value="centerY" onClick={() => onAlign?.("centerY")} sx={{ border: "none" }}><AlignVerticalCenterIcon fontSize="small"/></ToggleButton></Tooltip>
+             <Tooltip title="Align Bottom"><ToggleButton value="bottom" onClick={() => onAlign?.("bottom")} sx={{ border: "none" }}><AlignVerticalBottomIcon fontSize="small"/></ToggleButton></Tooltip>
+        </ToggleButtonGroup>
+
+        <Divider orientation="vertical" flexItem />
+
+        <Tooltip title="Auto Layout">
+             <ToggleButtonGroup size="small">
+                <ToggleButton value="auto" onClick={onAutoLayout} sx={{ border: "none" }}><AutoAwesomeIcon fontSize="small" /></ToggleButton>
+             </ToggleButtonGroup>
+        </Tooltip>
+      </Paper>
+
+      <Typography variant="caption" sx={{ position: "absolute", bottom: 8, left: 16, color: "text.disabled", userSelect: "none", pointerEvents: "none", opacity: 0.6 }}>
+        Drag to Pan · Scroll to Zoom · Ctrl+Click to Select Multiple
+      </Typography>
+    </Box>
   );
 };

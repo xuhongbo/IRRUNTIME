@@ -1,5 +1,11 @@
 import type { LintIssue } from "../studio/lint";
-import "./LintPanel.css";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
+import Button from "@mui/material/Button";
 
 type LintPanelProps = {
   issues: LintIssue[];
@@ -9,33 +15,47 @@ type LintPanelProps = {
 
 export const LintPanel = ({ issues, onFix, onFocusNode }: LintPanelProps) => {
   return (
-    <div className="lint-panel">
-      <div className="lint-header">
-        <div>
-          <div className="lint-title">建议</div>
-          <div className="lint-subtitle">{issues.length} 条建议</div>
-        </div>
-      </div>
-      {issues.length === 0 && <div className="lint-empty">暂无建议。</div>}
-      <div className="lint-list">
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
+          <Typography variant="subtitle1">建议</Typography>
+          <Typography variant="caption" color="text.secondary">{issues.length} 条建议</Typography>
+      </Box>
+      <List sx={{ flexGrow: 1, overflow: "auto", p: 2 }}>
+        {issues.length === 0 && (
+             <Box sx={{ textAlign: "center" }}>
+               <Typography variant="body2" color="text.secondary">暂无建议。</Typography>
+             </Box>
+        )}
         {issues.map((issue) => (
-          <div key={issue.id} className={`lint-item ${issue.severity}`}>
-            <div className="lint-message">
-              {issue.nodeId && (
-                <button className="link" onClick={() => onFocusNode(issue.nodeId!)}>
-                  {issue.nodeId}
-                </button>
-              )}
-              {issue.message}
-            </div>
-            {issue.fix && (
-              <button className="button" onClick={() => onFix(issue)}>
-                {issue.fix.label}
-              </button>
-            )}
-          </div>
+          <ListItem key={issue.id} disablePadding sx={{ mb: 1 }}>
+             <Alert 
+                severity={issue.severity === "error" ? "error" : "warning"} 
+                sx={{ width: "100%" }}
+                action={
+                    issue.fix ? (
+                        <Button color="inherit" size="small" onClick={() => onFix(issue)}>
+                            {issue.fix.label}
+                        </Button>
+                    ) : null
+                }
+             >
+                <AlertTitle>
+                    {issue.nodeId && (
+                        <Typography 
+                            component="span" 
+                            variant="subtitle2" 
+                            sx={{ cursor: "pointer", textDecoration: "underline", mr: 1 }}
+                            onClick={() => onFocusNode(issue.nodeId!)}
+                        >
+                            {issue.nodeId}
+                        </Typography>
+                    )}
+                </AlertTitle>
+                {issue.message}
+             </Alert>
+          </ListItem>
         ))}
-      </div>
-    </div>
+      </List>
+    </Box>
   );
 };

@@ -1,92 +1,147 @@
+:root {
+  --rete-node-bg: #ffffff;
+  --rete-node-border: #e2e8f0;
+  --rete-node-color: #0f172a;
+  --rete-node-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --rete-node-selected-shadow: 0 0 0 2px rgba(79, 70, 229, 0.4);
+  --rete-socket-size: 16px;
+  --rete-socket-margin: 10px;
+  --rete-socket-color: #94a3b8;
+  
+  --rete-exec-color: #f97316; /* Orange-500 */
+  --rete-data-color: #3b82f6; /* Blue-500 */
+  --rete-error-color: #ef4444; /* Red-500 */
+  --rete-running-color: #10b981; /* Emerald-500 */
+}
+
 .rete-canvas {
   width: 100%;
   height: 100%;
-  background: var(--surface-2);
-  border-radius: 16px;
-  border: 1px solid rgba(15, 27, 45, 0.1);
+  background-color: #f8fafc;
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 20px 20px;
   position: relative;
   overflow: hidden;
 }
 
-.rete-canvas .title,
-.rete-title {
-  font-weight: 700;
-  margin-bottom: 8px;
+/* Node Styles */
+.rete-node {
+  background: var(--rete-node-bg) !important;
+  border: 1px solid var(--rete-node-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--rete-node-shadow) !important;
+  color: var(--rete-node-color) !important;
+  min-width: 200px;
+  padding: 0 !important; /* Reset padding for internal layout */
+  transition: box-shadow 0.2s, border-color 0.2s;
 }
 
-.rete-port {
+.rete-node:hover {
+  border-color: #cbd5e1 !important;
+}
+
+.rete-node.selected {
+  border-color: #6366f1 !important;
+  box-shadow: var(--rete-node-selected-shadow) !important;
+  z-index: 10;
+}
+
+/* Node Internal Layout */
+.rete-title {
+  padding: 12px 16px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 8px 8px 0 0;
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #334155;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 0;
 }
 
-.rete-input {
+.rete-node.selected .rete-title {
+    background: #eef2ff;
+    color: #4338ca;
+}
+
+.rete-content {
+    padding: 12px;
+}
+
+/* Ports */
+.rete-port {
+  display: flex;
+  align-items: center;
+  margin: 8px 12px;
+}
+
+.rete-port.rete-input {
   justify-content: flex-start;
-  gap: 10px;
 }
 
-.rete-output {
+.rete-port.rete-output {
   justify-content: flex-end;
-  gap: 10px;
 }
 
 .rete-port-label {
-  font-size: 12px;
-  color: var(--ink-500);
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  margin: 0 10px;
+  color: #64748b;
+  font-weight: 500;
 }
 
-.rete-port.exec .rete-port-label {
-  color: var(--accent);
+/* Sockets */
+.socket {
+  width: var(--rete-socket-size) !important;
+  height: var(--rete-socket-size) !important;
+  background: var(--rete-socket-color) !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  transition: transform 0.2s, background-color 0.2s;
 }
 
-.rete-port.data .rete-port-label {
-  color: var(--accent-2);
+.socket:hover {
+  transform: scale(1.2);
+  border-color: #f1f5f9 !important;
 }
 
-.rete-node.error {
-  box-shadow: 0 0 0 2px rgba(220, 61, 61, 0.4);
-}
+.rete-port.exec .socket { background: var(--rete-exec-color) !important; }
+.rete-port.data .socket { background: var(--rete-data-color) !important; }
 
-.rete-node.running {
-  box-shadow: 0 0 0 2px rgba(31, 187, 166, 0.4);
-}
-
+/* Status Indicators */
 .rete-node-error-badge {
-  margin-left: 6px;
-  color: #dc3d3d;
-  font-weight: 700;
+  color: var(--rete-error-color);
+  font-weight: bold;
 }
 
 .rete-node-running-badge {
-  margin-left: 6px;
-  color: var(--accent-3);
-  font-size: 12px;
+  color: var(--rete-running-color);
+  animation: pulse 1.5s infinite;
 }
 
-.rete-node-breakpoint-badge {
-  margin-left: 6px;
-  color: #dc3d3d;
-  font-size: 12px;
+.rete-node.error {
+  border-color: var(--rete-error-color) !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
 }
 
-.rete-port.error {
-  border-bottom: 1px solid rgba(220, 61, 61, 0.4);
+.rete-node.running {
+  border-color: var(--rete-running-color) !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
 }
 
-.rete-port.focused {
-  background: rgba(79, 124, 255, 0.12);
-  border-radius: 8px;
-  padding: 6px 8px;
+/* Connections */
+.connection .main-path {
+  stroke-width: 2px;
+  stroke: #94a3b8;
+  fill: none;
 }
 
-.rete-socket.exec div {
-  border-color: rgba(255, 122, 89, 0.8) !important;
-  background: rgba(255, 122, 89, 0.4) !important;
-}
-
-.rete-socket.data div {
-  border-color: rgba(79, 124, 255, 0.8) !important;
-  background: rgba(79, 124, 255, 0.35) !important;
+@keyframes pulse {
+  0% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.6; transform: scale(0.9); }
 }

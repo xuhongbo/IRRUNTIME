@@ -1,6 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { GraphContract, GraphContractPort } from "../engine/ir";
-import "./GraphSettings.css";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import IconButton from "@mui/material/IconButton";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import Stack from "@mui/material/Stack";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
 
 type GraphSettingsProps = {
   contract: GraphContract;
@@ -61,11 +78,6 @@ export const GraphSettings = ({
     }
     setInputDraft(next);
   }, [contract.inputs, inputValues]);
-
-  const normalized = useMemo(() => ({
-    inputs: draft.inputs.filter((item) => item.name.trim().length > 0),
-    outputs: draft.outputs.filter((item) => item.name.trim().length > 0),
-  }), [draft.inputs, draft.outputs]);
 
   const updateContractItem = (
     kind: "inputs" | "outputs",
@@ -221,240 +233,141 @@ export const GraphSettings = ({
     }
   };
 
+  const renderContractRow = (item: GraphContractPort, index: number, kind: "inputs" | "outputs") => (
+    <Paper key={`${kind}-${index}`} variant="outlined" sx={{ p: 2, mb: 1 }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+            <TextField 
+                label="名称" size="small" value={item.name} 
+                onChange={(e) => updateContractItem(kind, index, { name: e.target.value })} 
+                data-testid={`contract-${kind}-name-${index}`}
+            />
+            <Select
+                size="small"
+                value={item.type}
+                onChange={(e) => updateContractItem(kind, index, { type: e.target.value as any })}
+                data-testid={`contract-${kind}-type-${index}`}
+            >
+                {dataTypes.map(t => <MenuItem key={t} value={t}>{typeLabels[t]}</MenuItem>)}
+            </Select>
+            <FormControlLabel 
+                control={<Checkbox checked={Boolean(item.required)} onChange={(e) => updateContractItem(kind, index, { required: e.target.checked })} />} 
+                label="必填" 
+            />
+             <TextField 
+                label="描述" size="small" value={item.description ?? ""} fullWidth
+                onChange={(e) => updateContractItem(kind, index, { description: e.target.value })} 
+            />
+            <IconButton color="error" onClick={() => removeContractItem(kind, index)}>
+                <DeleteIcon />
+            </IconButton>
+        </Stack>
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+             {item.type === "json" ? (
+                  <TextField 
+                    label="默认值 (JSON)" size="small" fullWidth multiline rows={2}
+                    value={typeof item.defaultValue === "string" ? item.defaultValue : JSON.stringify(item.defaultValue ?? null, null, 2)}
+                    onChange={(e) => updateContractItem(kind, index, { defaultValue: e.target.value })}
+                  />
+             ) : (
+                  <TextField 
+                    label="默认值" size="small" fullWidth
+                    value={item.defaultValue === undefined ? "" : String(item.defaultValue)}
+                    onChange={(e) => updateContractItem(kind, index, { defaultValue: e.target.value })}
+                  />
+             )}
+              <TextField 
+                label="示例 (JSON Array)" size="small" fullWidth multiline rows={2}
+                value={typeof item.examples === "string" ? item.examples : JSON.stringify(item.examples ?? [], null, 2)}
+                onChange={(e) => updateContractItem(kind, index, { examples: e.target.value })}
+              />
+        </Stack>
+    </Paper>
+  );
+
   return (
-    <div className="graph-settings" data-testid="graph-settings-root">
-      <div className="graph-settings-section">
-        <div className="graph-settings-title">图合约</div>
-        <div className="graph-settings-desc">用于定义对外输入与输出，运行时校验与输出都会基于这里。</div>
-        <div className="contract-group">
-          <div className="contract-header">
-            <div className="contract-label">输入</div>
-            <button className="button" onClick={() => addContractItem("inputs")} data-testid="contract-add-input">
-              添加输入
-            </button>
-          </div>
-          {draft.inputs.length === 0 && <div className="contract-empty">暂无输入。</div>}
-          {draft.inputs.map((item, index) => (
-            <div key={`input-${index}`} className="contract-row">
-              <input
-                value={item.name}
-                placeholder="名称"
-                data-testid={`contract-input-name-${index}`}
-                onChange={(event) => updateContractItem("inputs", index, { name: event.target.value })}
-              />
-              <select
-                value={item.type}
-                data-testid={`contract-input-type-${index}`}
-                onChange={(event) =>
-                  updateContractItem("inputs", index, { type: event.target.value as GraphContractPort["type"] })
-                }
-              >
-                {dataTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {typeLabels[type]}
-                  </option>
-                ))}
-              </select>
-              <label className="contract-check">
-                <input
-                  type="checkbox"
-                  checked={Boolean(item.required)}
-                  data-testid={`contract-input-required-${index}`}
-                  onChange={(event) => updateContractItem("inputs", index, { required: event.target.checked })}
+    <Box sx={{ p: 2 }} data-testid="graph-settings-root">
+      
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+             <Typography variant="h6">图合约</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+            <Typography variant="body2" color="text.secondary" paragraph>用于定义对外输入与输出，运行时校验与输出都会基于这里。</Typography>
+            
+            <Divider sx={{ my: 2 }}><Typography variant="caption">输入</Typography></Divider>
+            {draft.inputs.map((item, index) => renderContractRow(item, index, "inputs"))}
+            <Button startIcon={<AddIcon />} onClick={() => addContractItem("inputs")}>添加输入</Button>
+
+            <Divider sx={{ my: 2 }}><Typography variant="caption">输出</Typography></Divider>
+            {draft.outputs.map((item, index) => renderContractRow(item, index, "outputs"))}
+            <Button startIcon={<AddIcon />} onClick={() => addContractItem("outputs")}>添加输出</Button>
+            
+            <Box sx={{ mt: 3 }}>
+                <Button variant="contained" onClick={applyContract} data-testid="contract-apply">应用合约</Button>
+            </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion defaultExpanded sx={{ mt: 2 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+             <Typography variant="h6">运行输入</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+            <Typography variant="body2" color="text.secondary" paragraph>运行时会使用这里的输入值，可手动修改后点击应用。</Typography>
+            {contract.inputs.length === 0 && <Typography color="text.secondary">未定义输入。</Typography>}
+            <Stack spacing={2}>
+            {contract.inputs.map((input) => (
+                <TextField 
+                    key={input.name}
+                    label={`${input.name} (${typeLabels[input.type]})`}
+                    size="small"
+                    fullWidth
+                    multiline={input.type === "json"}
+                    value={inputDraft[input.name] ?? ""}
+                    onChange={(e) => setInputDraft(prev => ({...prev, [input.name]: e.target.value}))}
+                    error={!!inputErrors[input.name]}
+                    helperText={inputErrors[input.name]}
                 />
-                必填
-              </label>
-              <input
-                value={item.description ?? ""}
-                placeholder="描述"
-                data-testid={`contract-input-description-${index}`}
-                onChange={(event) => updateContractItem("inputs", index, { description: event.target.value })}
-              />
-              {item.type === "json" ? (
-                <textarea
-                  value={typeof item.defaultValue === "string" ? item.defaultValue : JSON.stringify(item.defaultValue ?? null, null, 2)}
-                  placeholder="默认值（JSON）"
-                  data-testid={`contract-input-default-${index}`}
-                  onChange={(event) => updateContractItem("inputs", index, { defaultValue: event.target.value })}
-                />
-              ) : (
-                <input
-                  value={item.defaultValue === undefined ? "" : String(item.defaultValue)}
-                  placeholder="默认值"
-                  data-testid={`contract-input-default-${index}`}
-                  onChange={(event) => updateContractItem("inputs", index, { defaultValue: event.target.value })}
-                />
-              )}
-              <textarea
-                value={typeof item.examples === "string" ? item.examples : JSON.stringify(item.examples ?? [], null, 2)}
-                placeholder="示例（JSON 数组）"
-                data-testid={`contract-input-examples-${index}`}
-                onChange={(event) => updateContractItem("inputs", index, { examples: event.target.value })}
-              />
-              <button className="button danger" onClick={() => removeContractItem("inputs", index)} data-testid={`contract-input-remove-${index}`}>
-                移除
-              </button>
-              {inputErrors[`${item.name}-default`] && (
-                <div className="field-error" data-testid={`contract-input-error-default-${index}`}>
-                  {inputErrors[`${item.name}-default`]}
-                </div>
-              )}
-              {inputErrors[`${item.name}-examples`] && (
-                <div className="field-error" data-testid={`contract-input-error-examples-${index}`}>
-                  {inputErrors[`${item.name}-examples`]}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="contract-group">
-          <div className="contract-header">
-            <div className="contract-label">输出</div>
-            <button className="button" onClick={() => addContractItem("outputs")} data-testid="contract-add-output">
-              添加输出
-            </button>
-          </div>
-          {draft.outputs.length === 0 && <div className="contract-empty">暂无输出。</div>}
-          {draft.outputs.map((item, index) => (
-            <div key={`output-${index}`} className="contract-row">
-              <input
-                value={item.name}
-                placeholder="名称"
-                data-testid={`contract-output-name-${index}`}
-                onChange={(event) => updateContractItem("outputs", index, { name: event.target.value })}
-              />
-              <select
-                value={item.type}
-                data-testid={`contract-output-type-${index}`}
-                onChange={(event) =>
-                  updateContractItem("outputs", index, { type: event.target.value as GraphContractPort["type"] })
-                }
-              >
-                {dataTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {typeLabels[type]}
-                  </option>
-                ))}
-              </select>
-              <label className="contract-check">
-                <input
-                  type="checkbox"
-                  checked={item.required ?? true}
-                  data-testid={`contract-output-required-${index}`}
-                  onChange={(event) => updateContractItem("outputs", index, { required: event.target.checked })}
-                />
-                必填
-              </label>
-              <input
-                value={item.description ?? ""}
-                placeholder="描述"
-                data-testid={`contract-output-description-${index}`}
-                onChange={(event) => updateContractItem("outputs", index, { description: event.target.value })}
-              />
-              <textarea
-                value={typeof item.examples === "string" ? item.examples : JSON.stringify(item.examples ?? [], null, 2)}
-                placeholder="示例（JSON 数组）"
-                data-testid={`contract-output-examples-${index}`}
-                onChange={(event) => updateContractItem("outputs", index, { examples: event.target.value })}
-              />
-              <button className="button danger" onClick={() => removeContractItem("outputs", index)} data-testid={`contract-output-remove-${index}`}>
-                移除
-              </button>
-              {inputErrors[`${item.name}-examples`] && (
-                <div className="field-error" data-testid={`contract-output-error-examples-${index}`}>
-                  {inputErrors[`${item.name}-examples`]}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <button
-          className="button primary"
-          onClick={applyContract}
-          data-testid="contract-apply"
-        >
-          应用合约
-        </button>
-      </div>
-      <div className="graph-settings-section">
-        <div className="graph-settings-title">运行输入</div>
-        <div className="graph-settings-desc">运行时会使用这里的输入值，可手动修改后点击应用。</div>
-        {contract.inputs.length === 0 && <div className="contract-empty">未定义输入。</div>}
-        {contract.inputs.map((input) => (
-          <div key={`input-val-${input.name}`} className="contract-row">
-            <div className="contract-name">{input.name}</div>
-            {input.type === "json" ? (
-              <textarea
-                value={inputDraft[input.name] ?? ""}
-                data-testid={`graph-input-${input.name}`}
-                onChange={(event) =>
-                  setInputDraft((prev) => ({ ...prev, [input.name]: event.target.value }))
-                }
-              />
-            ) : (
-              <input
-                value={inputDraft[input.name] ?? ""}
-                placeholder={typeLabels[input.type]}
-                data-testid={`graph-input-${input.name}`}
-                onChange={(event) =>
-                  setInputDraft((prev) => ({ ...prev, [input.name]: event.target.value }))
-                }
-              />
-            )}
-            {inputErrors[input.name] && (
-              <div className="field-error" data-testid={`graph-input-error-${input.name}`}>
-                {inputErrors[input.name]}
-              </div>
-            )}
-          </div>
-        ))}
-        <button className="button" onClick={applyInputs} data-testid="graph-inputs-apply">
-          应用输入
-        </button>
-      </div>
-      <div className="graph-settings-section">
-        <div className="graph-settings-title">预设</div>
-        <div className="graph-settings-desc">保存一组输入值，运行时可快速切换。</div>
-        {presetDraft.length === 0 && <div className="contract-empty">暂无预设。</div>}
-        {presetDraft.map((preset, index) => (
-          <div key={preset.id} className="contract-row preset-row">
-            <input
-              value={preset.title}
-              placeholder="标题"
-              data-testid={`preset-title-${index}`}
-              onChange={(event) => updatePreset(index, { title: event.target.value })}
-            />
-            <input
-              value={preset.description ?? ""}
-              placeholder="说明"
-              data-testid={`preset-description-${index}`}
-              onChange={(event) => updatePreset(index, { description: event.target.value })}
-            />
-            <textarea
-              value={preset.inputs}
-              placeholder="输入（JSON）"
-              data-testid={`preset-inputs-${index}`}
-              onChange={(event) => updatePreset(index, { inputs: event.target.value })}
-            />
-            <button className="button danger" onClick={() => removePreset(index)} data-testid={`preset-remove-${index}`}>
-              移除
-            </button>
-            {inputErrors[preset.id] && (
-              <div className="field-error" data-testid={`preset-error-${index}`}>
-                {inputErrors[preset.id]}
-              </div>
-            )}
-          </div>
-        ))}
-        <div className="preset-actions">
-          <button className="button" onClick={addPreset} data-testid="preset-add">
-            新增预设
-          </button>
-          <button className="button primary" onClick={applyPresets} data-testid="preset-apply">
-            应用预设
-          </button>
-        </div>
-      </div>
-    </div>
+            ))}
+            </Stack>
+             <Box sx={{ mt: 3 }}>
+                <Button variant="contained" onClick={applyInputs} data-testid="graph-inputs-apply">应用输入</Button>
+            </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion sx={{ mt: 2 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+             <Typography variant="h6">预设</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+            <Typography variant="body2" color="text.secondary" paragraph>保存一组输入值，运行时可快速切换。</Typography>
+             {presetDraft.map((preset, index) => (
+                 <Paper key={preset.id} variant="outlined" sx={{ p: 2, mb: 1 }}>
+                     <Stack spacing={2}>
+                        <Stack direction="row" spacing={2}>
+                            <TextField label="标题" size="small" value={preset.title} onChange={(e) => updatePreset(index, { title: e.target.value })} />
+                            <TextField label="说明" size="small" fullWidth value={preset.description ?? ""} onChange={(e) => updatePreset(index, { description: e.target.value })} />
+                             <IconButton color="error" onClick={() => removePreset(index)}>
+                                <DeleteIcon />
+                            </IconButton>
+                        </Stack>
+                        <TextField 
+                            label="输入 (JSON)" multiline rows={3} fullWidth 
+                            value={preset.inputs} onChange={(e) => updatePreset(index, { inputs: e.target.value })}
+                            error={!!inputErrors[preset.id]}
+                            helperText={inputErrors[preset.id]}
+                            sx={{ fontFamily: "monospace" }}
+                        />
+                     </Stack>
+                 </Paper>
+             ))}
+             <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+                <Button startIcon={<AddIcon />} onClick={addPreset}>新增预设</Button>
+                <Button variant="contained" onClick={applyPresets}>应用预设</Button>
+             </Stack>
+        </AccordionDetails>
+      </Accordion>
+    </Box>
   );
 };

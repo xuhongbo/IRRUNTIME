@@ -4,7 +4,24 @@ import type { FormFieldDef, Registry } from "../engine/registry";
 import type { ValidationError } from "../engine/validator";
 import { getNodePinStatus, groupNodeErrors } from "./inspectorUtils";
 import { normalizeContract } from "../engine/contract";
-import "./Inspector.css";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Divider from "@mui/material/Divider";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+import Alert from "@mui/material/Alert";
+import IconButton from "@mui/material/IconButton";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import BugReportIcon from "@mui/icons-material/BugReport";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import Collapse from "@mui/material/Collapse";
 
 type InspectorProps = {
   graph: Graph;
@@ -16,6 +33,34 @@ type InspectorProps = {
   onDeleteNode: (nodeId: string) => void;
   hasBreakpoint: boolean;
   onToggleBreakpoint: (nodeId: string) => void;
+};
+
+const SectionHeader = ({ title, defaultOpen = true, children }: { title: string, defaultOpen?: boolean, children: React.ReactNode }) => {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+            <Box 
+                onClick={() => setOpen(!open)} 
+                sx={{ 
+                    px: 2, 
+                    py: 1.5, 
+                    display: "flex", 
+                    alignItems: "center", 
+                    cursor: "pointer", 
+                    "&:hover": { bgcolor: "action.hover" },
+                    userSelect: "none"
+                }}
+            >
+                {open ? <ExpandMoreIcon fontSize="small" sx={{ color: "text.secondary", mr: 1 }} /> : <ChevronRightIcon fontSize="small" sx={{ color: "text.secondary", mr: 1 }} />}
+                <Typography variant="subtitle2" fontWeight={600} color="text.primary">{title}</Typography>
+            </Box>
+            <Collapse in={open}>
+                <Box sx={{ px: 2, pb: 2 }}>
+                    {children}
+                </Box>
+            </Collapse>
+        </Box>
+    );
 };
 
 export const Inspector = ({
@@ -43,14 +88,9 @@ export const Inspector = ({
 
   if (!node || !def) {
     return (
-      <div className="inspector" data-testid="inspector-root">
-        <div className="inspector-header">
-          <div>
-            <div className="inspector-title">检查器</div>
-            <div className="inspector-subtitle">请选择一个节点</div>
-          </div>
-        </div>
-      </div>
+      <Box sx={{ p: 4, textAlign: "center", color: "text.secondary", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }} data-testid="inspector-root">
+        <Typography variant="body2">Select a node to inspect</Typography>
+      </Box>
     );
   }
 
@@ -62,20 +102,20 @@ export const Inspector = ({
     }
     const contract = normalizeContract(graph.contract);
     const typeLabels: Record<string, string> = {
-      string: "字符串",
-      number: "数字",
-      boolean: "布尔",
+      string: "String",
+      number: "Number",
+      boolean: "Boolean",
       json: "JSON",
     };
     const options =
       node.type === "GraphInput"
         ? contract.inputs.map((item) => ({
             value: item.name,
-            label: `${item.name}（${typeLabels[item.type] ?? item.type}）`,
+            label: `${item.name} (${typeLabels[item.type] ?? item.type})`,
           }))
         : contract.outputs.map((item) => ({
             value: item.name,
-            label: `${item.name}（${typeLabels[item.type] ?? item.type}）`,
+            label: `${item.name} (${typeLabels[item.type] ?? item.type})`,
           }));
     return def.form.map((field) =>
       field.key === "name" ? { ...field, options } : field
@@ -93,7 +133,7 @@ export const Inspector = ({
             const parsed = JSON.parse(raw);
             nextProps[field.key] = parsed;
           } catch (err) {
-            errors[field.key] = "JSON 无效";
+            errors[field.key] = "Invalid JSON";
           }
         }
       }
@@ -109,153 +149,148 @@ export const Inspector = ({
   const pinStatus = getNodePinStatus(graph, node.id, registry, errorGroups.pinErrors);
 
   return (
-    <div className="inspector" data-testid="inspector-root">
-      <div className="inspector-header">
-        <div>
-          <div className="inspector-title">检查器</div>
-          <div className="inspector-subtitle">
-            {node.type}@{node.version}
-          </div>
-          <div className="inspector-node-id" data-testid="inspector-node-id">
-            {node.id}
-          </div>
-        </div>
-        <div className="inspector-actions">
-          <button
-            className={`button ${hasBreakpoint ? "primary" : ""}`}
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "background.paper" }} data-testid="inspector-root">
+      {/* Header */}
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider", bgcolor: "background.default" }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Box>
+                <Typography variant="subtitle1" fontWeight={700}>{node.type}</Typography>
+                <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                    {node.id} <Typography component="span" variant="caption" sx={{ color: "text.disabled" }}>• v{node.version}</Typography>
+                </Typography>
+            </Box>
+            <IconButton size="small" color="error" onClick={() => onDeleteNode(node.id)} title="Delete Node">
+                <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+        </Stack>
+        <Button
+            size="small"
+            variant={hasBreakpoint ? "contained" : "outlined"}
+            color={hasBreakpoint ? "warning" : "inherit"}
+            startIcon={<BugReportIcon fontSize="small" />}
             onClick={() => onToggleBreakpoint(node.id)}
-            data-testid="toggle-breakpoint"
-          >
-            {hasBreakpoint ? "断点已开" : "添加断点"}
-          </button>
-          <button className="button danger" onClick={() => onDeleteNode(node.id)} data-testid="delete-node">
-            删除
-          </button>
-        </div>
-      </div>
-      <div className="inspector-section">
-        <div className="inspector-section-title">属性</div>
-        {resolvedForm.length === 0 && <div className="inspector-empty">暂无可编辑属性。</div>}
-        {resolvedForm.map((field) => (
-          <FieldEditor
-            key={field.key}
-            field={field}
-            value={draftProps[field.key]}
-            error={jsonErrors[field.key]}
-            onChange={(value) => {
-              setDraftProps((prev) => ({ ...prev, [field.key]: value }));
-            }}
-          />
-        ))}
-        <button className="button primary" onClick={apply} data-testid="inspector-apply">
-          应用
-        </button>
-        <div className="props-preview" data-testid="props-preview">
-          <div className="props-preview-title">当前属性</div>
-          <pre>{JSON.stringify(node.props, null, 2)}</pre>
-        </div>
-      </div>
-      <div className="inspector-section">
-        <div className="inspector-section-title">引脚</div>
-        {!pinStatus && <div className="inspector-empty">暂无引脚信息。</div>}
+            fullWidth
+            sx={{ mt: 2, borderColor: "divider" }}
+        >
+            {hasBreakpoint ? "Breakpoint Active" : "Add Breakpoint"}
+        </Button>
+      </Box>
+
+      <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+        
+        {errorGroups.nodeErrors.length > 0 && (
+           <Box sx={{ p: 2, bgcolor: "error.light", color: "error.contrastText" }}>
+                {errorGroups.nodeErrors.map((err, index) => (
+                    <Typography key={index} variant="body2" fontWeight={500} sx={{ display: "flex", gap: 1 }}>
+                        • {err.message}
+                    </Typography>
+                ))}
+           </Box>
+        )}
+
+        <SectionHeader title="Properties">
+            <Stack spacing={2}>
+                {resolvedForm.length === 0 && <Typography variant="body2" color="text.secondary" fontStyle="italic">No configurable properties.</Typography>}
+                {resolvedForm.map((field) => (
+                <FieldEditor
+                    key={field.key}
+                    field={field}
+                    value={draftProps[field.key]}
+                    error={jsonErrors[field.key]}
+                    onChange={(value) => {
+                        setDraftProps((prev) => ({ ...prev, [field.key]: value }));
+                    }}
+                />
+                ))}
+                {resolvedForm.length > 0 && (
+                    <Button variant="contained" onClick={apply} fullWidth disableElevation>
+                        Apply Changes
+                    </Button>
+                )}
+            </Stack>
+        </SectionHeader>
+
         {pinStatus && (
-          <div className="pin-grid">
-            <div className="pin-group">
-              <div className="pin-group-title">输入</div>
-              {pinStatus.inputs.length === 0 && <div className="inspector-empty">暂无输入。</div>}
-              {pinStatus.inputs.map((pin) => (
-                <div
-                  key={`in-${pin.key}`}
-                  className={`pin-row ${pin.connected ? "connected" : "disconnected"} ${
-                    pin.errors.length > 0 ? "error" : ""
-                  }`}
-                >
-                  <div className="pin-main">
-                    <span className={`pin-kind ${pin.kind}`}>{pin.kind === "exec" ? "执行" : "数据"}</span>
-                    <span className="pin-label">{pin.label}</span>
-                    {pin.dataType && <span className="pin-type">{pin.dataType}</span>}
-                  </div>
-                  <div className="pin-meta">
-                    {pin.connected ? `${pin.connections} 条连接` : pin.required ? "必填" : "可选"}
-                  </div>
-                  {pin.errors.length > 0 && (
-                    <div className="pin-errors">
-                      {pin.errors.map((msg, index) => (
-                        <div key={`${pin.key}-err-${index}`}>{msg}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="pin-group">
-              <div className="pin-group-title">输出</div>
-              {pinStatus.outputs.length === 0 && <div className="inspector-empty">暂无输出。</div>}
-              {pinStatus.outputs.map((pin) => (
-                <div
-                  key={`out-${pin.key}`}
-                  className={`pin-row ${pin.connected ? "connected" : "disconnected"} ${
-                    pin.errors.length > 0 ? "error" : ""
-                  }`}
-                >
-                  <div className="pin-main">
-                    <span className={`pin-kind ${pin.kind}`}>{pin.kind === "exec" ? "执行" : "数据"}</span>
-                    <span className="pin-label">{pin.label}</span>
-                    {pin.dataType && <span className="pin-type">{pin.dataType}</span>}
-                  </div>
-                  <div className="pin-meta">
-                    {pin.connected ? `${pin.connections} 条连接` : pin.required ? "必填" : "可选"}
-                  </div>
-                  {pin.errors.length > 0 && (
-                    <div className="pin-errors">
-                      {pin.errors.map((msg, index) => (
-                        <div key={`${pin.key}-err-${index}`}>{msg}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+             <SectionHeader title="Connections">
+                <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                    <Box>
+                         <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>INPUTS</Typography>
+                         {pinStatus.inputs.length === 0 && <Typography variant="caption" color="text.disabled">None</Typography>}
+                         <Stack spacing={0.5}>
+                            {pinStatus.inputs.map(pin => (
+                                <Box key={pin.key} sx={{ 
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    p: 0.5, borderRadius: 1, bgcolor: pin.connected ? "action.hover" : "transparent"
+                                }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                        <Box sx={{ 
+                                            width: 8, height: 8, borderRadius: "50%", 
+                                            bgcolor: pin.kind === "exec" ? "warning.main" : "info.main" 
+                                        }} />
+                                        <Typography variant="body2" fontSize="0.75rem">{pin.label}</Typography>
+                                    </Box>
+                                </Box>
+                            ))}
+                         </Stack>
+                    </Box>
+                    <Box>
+                         <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>OUTPUTS</Typography>
+                         {pinStatus.outputs.length === 0 && <Typography variant="caption" color="text.disabled">None</Typography>}
+                         <Stack spacing={0.5}>
+                            {pinStatus.outputs.map(pin => (
+                                <Box key={pin.key} sx={{ 
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    p: 0.5, borderRadius: 1, bgcolor: pin.connected ? "action.hover" : "transparent"
+                                }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                        <Box sx={{ 
+                                            width: 8, height: 8, borderRadius: "50%", 
+                                            bgcolor: pin.kind === "exec" ? "warning.main" : "info.main" 
+                                        }} />
+                                        <Typography variant="body2" fontSize="0.75rem">{pin.label}</Typography>
+                                    </Box>
+                                </Box>
+                            ))}
+                         </Stack>
+                    </Box>
+                </Box>
+             </SectionHeader>
         )}
-      </div>
-      {errorGroups.nodeErrors.length > 0 && (
-        <div className="inspector-section">
-          <div className="inspector-section-title">节点错误</div>
-          <div className="pin-errors">
-            {errorGroups.nodeErrors.map((err, index) => (
-              <div key={`${node.id}-node-err-${index}`}>{err.message}</div>
-            ))}
-          </div>
-        </div>
-      )}
-      <div className="inspector-section">
-        <div className="inspector-section-title">节点输入输出</div>
-        {!io && <div className="inspector-empty">暂无运行记录。</div>}
+        
         {io && (
-          <div className="io-grid">
-            <div className="io-block">
-              <div className="io-title">输入</div>
-              <pre>{JSON.stringify(io.inputs, null, 2)}</pre>
-            </div>
-            <div className="io-block">
-              <div className="io-title">输出</div>
-              <pre>{JSON.stringify(io.outputs, null, 2)}</pre>
-            </div>
-            {io.logs && io.logs.length > 0 && (
-              <div className="io-block">
-                <div className="io-title">日志</div>
-                <pre>{io.logs.join("\n")}</pre>
-              </div>
-            )}
-            <div className="io-meta">
-              <span>耗时：{io.durationMs.toFixed(2)} ms</span>
-              {io.error && <span className="io-error">错误：{io.error}</span>}
-            </div>
-          </div>
+             <SectionHeader title="Last Execution" defaultOpen={false}>
+                 <Stack spacing={1}>
+                     <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                        <Typography variant="caption" color="text.secondary">Duration</Typography>
+                        <Typography variant="caption" fontFamily="monospace">{io.durationMs.toFixed(2)}ms</Typography>
+                     </Box>
+                     <Divider />
+                     <Box>
+                         <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Input Data</Typography>
+                         <Box sx={{ bgcolor: "grey.50", p: 1, borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+                            <Typography variant="caption" fontFamily="monospace" component="pre" sx={{ m: 0, overflow: "auto" }}>
+                                {JSON.stringify(io.inputs, null, 2)}
+                            </Typography>
+                         </Box>
+                     </Box>
+                     <Box>
+                         <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Output Data</Typography>
+                         <Box sx={{ bgcolor: "grey.50", p: 1, borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+                            <Typography variant="caption" fontFamily="monospace" component="pre" sx={{ m: 0, overflow: "auto" }}>
+                                {JSON.stringify(io.outputs, null, 2)}
+                            </Typography>
+                         </Box>
+                     </Box>
+                     {io.error && (
+                         <Alert severity="error" sx={{ mt: 1 }}>
+                             {io.error}
+                         </Alert>
+                     )}
+                 </Stack>
+            </SectionHeader>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 
@@ -268,87 +303,105 @@ type FieldEditorProps = {
 
 const FieldEditor = ({ field, value, error, onChange }: FieldEditorProps) => {
   const id = `field-${field.key}`;
-  const common = {
-    id,
-    name: field.key,
-    "data-testid": id,
-  };
 
-  const renderInput = () => {
-    switch (field.type) {
-      case "string":
-        return (
-          <input
-            {...common}
-            type="text"
-            value={typeof value === "string" ? value : ""}
-            placeholder={field.placeholder}
-            onChange={(event) => onChange(event.target.value)}
-          />
-        );
-      case "number":
-        return (
-          <input
-            {...common}
-            type="number"
-            value={typeof value === "number" ? value : 0}
-            onChange={(event) => onChange(Number(event.target.value))}
-          />
-        );
-      case "boolean":
-        return (
-          <label className="switch">
-            <input
-              {...common}
-              type="checkbox"
+  switch (field.type) {
+    case "string":
+      return (
+        <TextField
+          id={id}
+          label={field.label}
+          value={typeof value === "string" ? value : ""}
+          placeholder={field.placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          helperText={error || field.helpText}
+          error={!!error}
+          fullWidth
+          size="small"
+        />
+      );
+    case "number":
+      return (
+         <TextField
+          id={id}
+          label={field.label}
+          type="number"
+          value={typeof value === "number" ? value : 0}
+          onChange={(event) => onChange(Number(event.target.value))}
+          helperText={error || field.helpText}
+          error={!!error}
+          fullWidth
+          size="small"
+        />
+      );
+    case "boolean":
+      return (
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
               checked={Boolean(value)}
               onChange={(event) => onChange(event.target.checked)}
             />
-            <span className="slider" />
-          </label>
-        );
-      case "select":
-        return (
-          <select {...common} value={typeof value === "string" ? value : ""} onChange={(event) => onChange(event.target.value)}>
-            {field.options?.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        );
-      case "textarea":
-        return (
-          <textarea
-            {...common}
+          }
+          label={<Typography variant="body2">{field.label}</Typography>}
+        />
+      );
+    case "select":
+      return (
+        <TextField
+            select
+            id={id}
+            label={field.label}
             value={typeof value === "string" ? value : ""}
-            placeholder={field.placeholder}
             onChange={(event) => onChange(event.target.value)}
-          />
-        );
-      case "json":
-      case "array": {
-        const textValue = typeof value === "string" ? value : JSON.stringify(value ?? (field.type === "array" ? [] : {}), null, 2);
-        return (
-          <textarea
-            {...common}
-            className="json"
-            value={textValue}
-            onChange={(event) => onChange(event.target.value)}
-          />
-        );
-      }
-      default:
-        return null;
+            helperText={error || field.helpText}
+            error={!!error}
+            fullWidth
+            size="small"
+        >
+             {field.options?.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+        </TextField>
+      );
+    case "textarea":
+      return (
+         <TextField
+          id={id}
+          label={field.label}
+          multiline
+          rows={3}
+          value={typeof value === "string" ? value : ""}
+          placeholder={field.placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          helperText={error || field.helpText}
+          error={!!error}
+          fullWidth
+          size="small"
+        />
+      );
+    case "json":
+    case "array": {
+      const textValue = typeof value === "string" ? value : JSON.stringify(value ?? (field.type === "array" ? [] : {}), null, 2);
+      return (
+        <TextField
+          id={id}
+          label={field.label}
+          multiline
+          rows={4}
+          value={textValue}
+          onChange={(event) => onChange(event.target.value)}
+          helperText={error || field.helpText}
+          error={!!error}
+          fullWidth
+          size="small"
+          sx={{ fontFamily: "Fira Code, monospace", "& .MuiInputBase-input": { fontSize: "0.8rem" } }}
+        />
+      );
     }
-  };
-
-  return (
-    <div className="field">
-      <label htmlFor={id}>{field.label}</label>
-      {renderInput()}
-      {field.helpText && <div className="field-help">{field.helpText}</div>}
-      {error && <div className="field-error">{error}</div>}
-    </div>
-  );
+    default:
+      return null;
+  }
 };
