@@ -5,7 +5,7 @@ test("M8 trace: copy JSON", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await openStudio(page);
 
-  await page.getByRole("button", { name: "Run" }).click();
+  await page.getByTestId("start-run").click();
   await page.waitForTimeout(300);
   await expect(page.locator(".trace-entry").first()).toBeVisible();
 

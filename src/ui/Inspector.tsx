@@ -109,10 +109,14 @@ export const Inspector = ({
           </div>
         </div>
         <div className="inspector-actions">
-          <button className={`button ${hasBreakpoint ? "primary" : ""}`} onClick={() => onToggleBreakpoint(node.id)}>
+          <button
+            className={`button ${hasBreakpoint ? "primary" : ""}`}
+            onClick={() => onToggleBreakpoint(node.id)}
+            data-testid="toggle-breakpoint"
+          >
             {hasBreakpoint ? "Breakpoint On" : "Add Breakpoint"}
           </button>
-          <button className="button danger" onClick={() => onDeleteNode(node.id)}>
+          <button className="button danger" onClick={() => onDeleteNode(node.id)} data-testid="delete-node">
             Delete
           </button>
         </div>
@@ -131,7 +135,7 @@ export const Inspector = ({
             }}
           />
         ))}
-        <button className="button primary" onClick={apply}>
+        <button className="button primary" onClick={apply} data-testid="inspector-apply">
           Apply
         </button>
         <div className="props-preview" data-testid="props-preview">
@@ -255,6 +259,7 @@ const FieldEditor = ({ field, value, error, onChange }: FieldEditorProps) => {
   const common = {
     id,
     name: field.key,
+    "data-testid": id,
   };
 
   const renderInput = () => {

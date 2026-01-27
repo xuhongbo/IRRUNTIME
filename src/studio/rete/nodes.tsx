@@ -35,7 +35,7 @@ export const NodeView = ({ data, emit }: NodeViewProps) => {
       data-testid={`node-${data.id}`}
       className={`rete-node ${nodeHasError ? "error" : ""} ${isRunning ? "running" : ""}`}
     >
-      <div className="rete-title">
+      <div className="rete-title" data-testid={`node-title-${data.id}`}>
         {data.label}
         {nodeHasError && <span className="rete-node-error-badge">!</span>}
         {isRunning && <span className="rete-node-running-badge">●</span>}

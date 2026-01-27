@@ -10,7 +10,7 @@ test("M6 errors: overlays and focus navigation", async ({ page }) => {
   if (!nodeId) return;
 
   await page.waitForTimeout(400);
-  const errorItem = page.locator(".errors-item").first();
+  const errorItem = page.getByTestId(`error-${nodeId}-text`);
   await expect(errorItem).toContainText(nodeId);
   await errorItem.click();
 
