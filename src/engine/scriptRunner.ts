@@ -35,6 +35,39 @@ const createSeededRandom = (seed: number) => {
   };
 };
 
+const createSafeMath = (rand: () => number) => {
+  const safe = Object.create(Math) as typeof Math;
+  safe.random = () => rand();
+  return safe;
+};
+
+const createSafeDate = () => {
+  return class SafeDate extends Date {
+    constructor(...args: ConstructorParameters<typeof Date>) {
+      if (args.length === 0) {
+        super(0);
+      } else {
+        super(...args);
+      }
+    }
+    static now() {
+      return 0;
+    }
+  };
+};
+
+const createSafeConsole = (logs: string[]) => ({
+  log: (...args: unknown[]) => {
+    logs.push(args.map((item) => String(item)).join(" "));
+  },
+  warn: (...args: unknown[]) => {
+    logs.push(args.map((item) => String(item)).join(" "));
+  },
+  error: (...args: unknown[]) => {
+    logs.push(args.map((item) => String(item)).join(" "));
+  },
+});
+
 export const runScriptInWorker = ({
   code,
   inputs,
@@ -62,6 +95,30 @@ export const runScriptInWorker = ({
         return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
       };
     };
+    const createSafeMath = (rand) => {
+      const safe = Object.create(Math);
+      safe.random = () => rand();
+      return safe;
+    };
+    const createSafeDate = () => {
+      return class SafeDate extends Date {
+        constructor(...args) {
+          if (args.length === 0) {
+            super(0);
+          } else {
+            super(...args);
+          }
+        }
+        static now() {
+          return 0;
+        }
+      };
+    };
+    const createSafeConsole = (logs) => ({
+      log: (...args) => logs.push(args.map((item) => String(item)).join(" ")),
+      warn: (...args) => logs.push(args.map((item) => String(item)).join(" ")),
+      error: (...args) => logs.push(args.map((item) => String(item)).join(" "))
+    });
     self.fetch = undefined;
     self.WebSocket = undefined;
     self.XMLHttpRequest = undefined;
@@ -69,6 +126,9 @@ export const runScriptInWorker = ({
       const { code, inputs, context, seed } = event.data;
       const logs = [];
       const rand = createSeededRandom(seed);
+      const safeMath = createSafeMath(rand);
+      const SafeDate = createSafeDate();
+      const safeConsole = createSafeConsole(logs);
       const utils = {
         log: (...args) => {
           logs.push(args.map((item) => typeof item === "string" ? item : JSON.stringify(item)).join(" "));
@@ -78,8 +138,19 @@ export const runScriptInWorker = ({
       };
       let result;
       try {
-        const fn = new Function("inputs", "context", "utils", "'use strict';\\n" + code);
-        result = fn(inputs, context, utils);
+        const fn = new Function(
+          "inputs",
+          "context",
+          "utils",
+          "Math",
+          "Date",
+          "console",
+          "fetch",
+          "WebSocket",
+          "XMLHttpRequest",
+          "'use strict';\\n" + code
+        );
+        result = fn(inputs, context, utils, safeMath, SafeDate, safeConsole, undefined, undefined, undefined);
       } catch (err) {
         self.postMessage({ ok: false, error: err && err.message ? err.message : String(err), logs });
         return;
@@ -166,6 +237,8 @@ export const runScriptInSandbox = ({
 }) => {
   const logs: string[] = [];
   const random = createSeededRandom(seed);
+  const safeMath = createSafeMath(random);
+  const SafeDate = createSafeDate();
   const utils = {
     log: (...args: unknown[]) => {
       logs.push(args.map((item) => String(item)).join(" "));
@@ -173,9 +246,21 @@ export const runScriptInSandbox = ({
     random: () => random(),
     now: () => 0,
   };
+  const safeConsole = createSafeConsole(logs);
   const start = performance.now();
-  const fn = new Function("inputs", "context", "utils", "'use strict';\n" + code);
-  const result = fn(inputs, context, utils);
+  const fn = new Function(
+    "inputs",
+    "context",
+    "utils",
+    "Math",
+    "Date",
+    "console",
+    "fetch",
+    "WebSocket",
+    "XMLHttpRequest",
+    "'use strict';\n" + code
+  );
+  const result = fn(inputs, context, utils, safeMath, SafeDate, safeConsole, undefined, undefined, undefined);
   if (performance.now() - start > timeoutMs) {
     throw new Error("Script timeout");
   }

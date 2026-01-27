@@ -119,10 +119,13 @@ export const useGraphSync = ({
     };
   }, [channelName, enabled, mode, onApplyCommand, onApplyGraph, sendSnapshot, sourceId]);
 
-  return {
-    sourceId,
-    sendCommand,
-    sendSnapshot,
-    requestSnapshot,
-  };
+  return useMemo(
+    () => ({
+      sourceId,
+      sendCommand,
+      sendSnapshot,
+      requestSnapshot,
+    }),
+    [requestSnapshot, sendCommand, sendSnapshot, sourceId]
+  );
 };

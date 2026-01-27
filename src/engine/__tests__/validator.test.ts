@@ -109,6 +109,40 @@ describe("validateGraph", () => {
     expect(result.errors.some((err) => err.message.includes("props failed"))).toBe(true);
   });
 
+  it("flags duplicate contract names", () => {
+    const graph = makeGraph(
+      [{ id: "start", type: "Start", version: 1, props: {}, pos: basePos }],
+      []
+    );
+    graph.contract = {
+      inputs: [
+        { name: "x", type: "string", required: true },
+        { name: "x", type: "string", required: false },
+      ],
+      outputs: [
+        { name: "y", type: "number", required: true },
+        { name: "y", type: "number", required: false },
+      ],
+    };
+    const result = validateGraph(graph, registry);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((err) => err.message.includes("Duplicate graph input"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("Duplicate graph output"))).toBe(true);
+  });
+
+  it("flags unknown edge node type", () => {
+    const graph = makeGraph(
+      [
+        { id: "a", type: "Unknown", version: 1, props: {}, pos: basePos },
+        { id: "b", type: "End", version: 1, props: {}, pos: basePos },
+      ],
+      [{ id: "e1", from: { nodeId: "a", pinKey: "out" }, to: { nodeId: "b", pinKey: "in" } }]
+    );
+    const result = validateGraph(graph, registry);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((err) => err.message.includes("Unknown node type"))).toBe(true);
+  });
+
   it("flags incompatible pin kinds", () => {
     const graph = makeGraph(
       [

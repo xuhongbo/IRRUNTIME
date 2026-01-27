@@ -665,7 +665,7 @@ const CanvasOnlyApp = () => {
 
   useEffect(() => {
     sync.requestSnapshot();
-  }, [sync]);
+  }, [sync.requestSnapshot]);
 
   const handleCommand = (command: Parameters<typeof applyCommand>[1]) => {
     updateGraph(applyCommand(graphRef.current, command));

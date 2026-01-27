@@ -1,7 +1,7 @@
 import { GraphRuntime } from "../runtime";
 import type { Graph } from "../ir";
 import { registry } from "../registry";
-import type { Registry } from "../registry";
+import type { NodeDefinition, Registry } from "../registry";
 import { z } from "zod";
 
 const pos = { x: 0, y: 0 };
@@ -32,6 +32,16 @@ const graph = (
   edges,
   contract,
 });
+
+const createRegistry = (defs: NodeDefinition[]): Registry => {
+  const map = new Map(defs.map((def) => [def.type, def]));
+  return {
+    get: (type) => map.get(type) ?? null,
+    getLatest: (type) => map.get(type) ?? null,
+    listTypes: () => Array.from(map.keys()),
+    migrateGraph: (g) => ({ graph: g, migrations: [] }),
+  };
+};
 
 describe("GraphRuntime", () => {
   it("notifies subscribers", () => {
@@ -218,6 +228,86 @@ describe("GraphRuntime", () => {
     jest.runOnlyPendingTimers();
     expect(runtime.getSnapshot().status).toBe("idle");
     jest.useRealTimers();
+  });
+
+  it("handles deferred result error", async () => {
+    const startDef: NodeDefinition = {
+      type: "Start",
+      version: 1,
+      title: "Start",
+      description: "",
+      inputs: [],
+      outputs: [{ key: "next", label: "Next", kind: "exec" }],
+      propsSchema: z.object({}).strict(),
+      defaultProps: {},
+      form: [],
+      run: () => ({ data: {}, exec: "next" }),
+    };
+    const deferredDef: NodeDefinition = {
+      type: "DeferredError",
+      version: 1,
+      title: "DeferredError",
+      description: "",
+      inputs: [{ key: "in", label: "In", kind: "exec" }],
+      outputs: [{ key: "out", label: "Out", kind: "exec" }],
+      propsSchema: z.object({}).strict(),
+      defaultProps: {},
+      form: [],
+      run: () => ({
+        data: {},
+        deferred: Promise.resolve({ data: {}, exec: "out", error: "boom" }),
+      }),
+    };
+    const customRegistry = createRegistry([startDef, deferredDef]);
+    const g = graph(
+      [node("start", "Start"), node("defer", "DeferredError")],
+      [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "defer", pinKey: "in" } }]
+    );
+    const runtime = new GraphRuntime(g, customRegistry);
+    runtime.run();
+    expect(runtime.getSnapshot().status).toBe("waiting");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runtime.getSnapshot().status).toBe("error");
+  });
+
+  it("handles deferred rejection", async () => {
+    const startDef: NodeDefinition = {
+      type: "Start",
+      version: 1,
+      title: "Start",
+      description: "",
+      inputs: [],
+      outputs: [{ key: "next", label: "Next", kind: "exec" }],
+      propsSchema: z.object({}).strict(),
+      defaultProps: {},
+      form: [],
+      run: () => ({ data: {}, exec: "next" }),
+    };
+    const deferredDef: NodeDefinition = {
+      type: "DeferredReject",
+      version: 1,
+      title: "DeferredReject",
+      description: "",
+      inputs: [{ key: "in", label: "In", kind: "exec" }],
+      outputs: [{ key: "out", label: "Out", kind: "exec" }],
+      propsSchema: z.object({}).strict(),
+      defaultProps: {},
+      form: [],
+      run: () => ({
+        data: {},
+        deferred: Promise.reject(new Error("reject")),
+      }),
+    };
+    const customRegistry = createRegistry([startDef, deferredDef]);
+    const g = graph(
+      [node("start", "Start"), node("defer", "DeferredReject")],
+      [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "defer", pinKey: "in" } }]
+    );
+    const runtime = new GraphRuntime(g, customRegistry);
+    runtime.run();
+    expect(runtime.getSnapshot().status).toBe("waiting");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runtime.getSnapshot().status).toBe("error");
   });
 
   it("routes onError when node throws", () => {
