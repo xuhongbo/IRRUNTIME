@@ -15,7 +15,7 @@ test("M9 JSON sync: apply valid and reject invalid drafts", async ({ page }) => 
   await expect(page.locator(".json-error")).toHaveCount(0);
 
   await page.getByTestId("tab-studio").click();
-  await page.getByTestId("node-show-intro").locator(".rete-title").click({ force: true });
+  await page.getByTestId("node-title-show-intro").click({ force: true });
   await expect(page.getByTestId("props-preview")).toContainText("\"title\": \"JSON Updated\"");
 
   await page.getByTestId("tab-json").click();
@@ -24,6 +24,6 @@ test("M9 JSON sync: apply valid and reject invalid drafts", async ({ page }) => 
   await expect(page.locator(".json-error")).toBeVisible();
 
   await page.getByTestId("tab-studio").click();
-  await page.getByRole("button", { name: "Run" }).click();
+  await page.getByTestId("start-run").click();
   await expect(page.getByTestId("runner-root")).toBeVisible();
 });

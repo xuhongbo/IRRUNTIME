@@ -6,15 +6,15 @@ test("M7 runtime: breakpoint, step, choice flow", async ({ page }) => {
 
   const waitNode = page.getByTestId("node-wait-choice");
   await waitNode.waitFor({ state: "visible", timeout: 10000 });
-  await waitNode.locator(".rete-title").click({ force: true });
-  await page.getByRole("button", { name: "Add Breakpoint" }).click();
+  await page.getByTestId("node-title-wait-choice").click({ force: true });
+  await page.getByTestId("toggle-breakpoint").click();
 
-  await page.getByRole("button", { name: "Run" }).click();
-  await expect(page.locator(".status-pill.paused")).toBeVisible();
+  await page.getByTestId("start-run").click();
+  await expect(page.getByTestId("status-pill")).toHaveText("paused");
 
-  await page.getByRole("button", { name: "Step" }).click();
+  await page.getByTestId("step-run").click();
   await expect(page.getByTestId("runner-root")).toContainText("Make a Choice");
 
-  await page.getByRole("button", { name: "Happy path" }).click();
+  await page.getByTestId("runner-choice-choiceA").click();
   await expect(page.getByTestId("runner-root")).toContainText("Delay");
 });

@@ -5,7 +5,7 @@ test("M2 canvas: select node and drag", async ({ page }) => {
   await openStudio(page);
   const node = page.getByTestId("node-start");
   await node.waitFor({ state: "visible", timeout: 10000 });
-  const handle = node.locator(".rete-title");
+  const handle = page.getByTestId("node-title-start");
   await handle.waitFor({ state: "visible", timeout: 10000 });
 
   await handle.click({ force: true });

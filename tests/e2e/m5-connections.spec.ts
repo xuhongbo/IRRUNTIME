@@ -1,19 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openStudio } from "./helpers";
-
-const dragPinToPin = async (page: Parameters<typeof test>[0]["page"], fromTestId: string, toTestId: string) => {
-  const from = page.getByTestId(fromTestId);
-  const to = page.getByTestId(toTestId);
-  await from.waitFor({ state: "visible", timeout: 10000 });
-  await to.waitFor({ state: "visible", timeout: 10000 });
-  const fromBox = await from.boundingBox();
-  const toBox = await to.boundingBox();
-  if (!fromBox || !toBox) throw new Error("Missing pin bounds");
-  await page.mouse.move(fromBox.x + fromBox.width / 2, fromBox.y + fromBox.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(toBox.x + toBox.width / 2, toBox.y + toBox.height / 2);
-  await page.mouse.up();
-};
+import { dragPinToPin, openStudio } from "./helpers";
 
 test("M5 connections: enforce pin and type rules", async ({ page }) => {
   await openStudio(page);
@@ -35,9 +21,9 @@ test("M5 connections: enforce pin and type rules", async ({ page }) => {
 
   await dragPinToPin(page, `pin-${numId}-value`, `pin-${showId}-text`);
   await page.waitForTimeout(400);
-  await expect(page.locator(".errors-item")).toContainText("Required input");
+  await expect(page.getByTestId(`error-${showId}-text`)).toContainText("Required input");
 
   await dragPinToPin(page, `pin-${strId}-value`, `pin-${showId}-text`);
   await page.waitForTimeout(400);
-  await expect(page.locator(".errors-panel")).toHaveCount(0);
+  await expect(page.getByTestId("errors-panel")).toHaveCount(0);
 });

@@ -511,7 +511,7 @@ const StudioApp = () => {
           >
             Open Canvas Window
           </button>
-          <button className="button" onClick={() => runtime.reset()}>
+          <button className="button" onClick={() => runtime.reset()} data-testid="reset-run">
             Reset
           </button>
           <button
@@ -520,6 +520,7 @@ const StudioApp = () => {
               runtime.prepareRun({ inputs: graphInputs, presetId: selectedPresetId ?? undefined, seed: seedRef.current++ });
               runtime.step();
             }}
+            data-testid="step-run"
           >
             Step
           </button>
@@ -529,10 +530,13 @@ const StudioApp = () => {
               runtime.prepareRun({ inputs: graphInputs, presetId: selectedPresetId ?? undefined, seed: seedRef.current++ });
               runtime.run();
             }}
+            data-testid="start-run"
           >
             Run
           </button>
-          <div className={`status-pill ${snapshot.status}`}>{snapshot.status}</div>
+          <div className={`status-pill ${snapshot.status}`} data-testid="status-pill">
+            {snapshot.status}
+          </div>
         </div>
       </header>
 
@@ -662,13 +666,14 @@ const StudioApp = () => {
       )}
 
       {state.context.validationStatus === "invalid" && (
-        <section className="errors-panel">
+        <section className="errors-panel" data-testid="errors-panel">
           <div className="errors-title">Validation Errors</div>
-          <div className="errors-list">
+          <div className="errors-list" data-testid="errors-list">
             {state.context.validationErrors.map((err, index) => (
               <div
                 key={`${err.nodeId ?? "graph"}-${index}`}
                 className="errors-item"
+                data-testid={`error-${err.nodeId ?? "graph"}${err.pinKey ? `-${err.pinKey}` : ""}`}
                 role="button"
                 tabIndex={0}
                 onClick={() => {
