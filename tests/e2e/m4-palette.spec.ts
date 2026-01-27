@@ -20,7 +20,7 @@ test("M4 palette: add and delete node", async ({ page }) => {
   const afterCount = parseCount(afterText);
   expect(afterCount).toBe(beforeCount + 1);
 
-  await page.getByRole("button", { name: "Delete" }).click();
+  await page.getByTestId("delete-node").click();
   const finalText = await meta.textContent();
   const finalCount = parseCount(finalText);
   expect(finalCount).toBe(beforeCount);

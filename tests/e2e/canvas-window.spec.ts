@@ -24,7 +24,7 @@ test("Open canvas window renders and syncs move", async ({ page }) => {
 
   const mainNode = page.getByTestId("node-start");
   await mainNode.waitFor({ state: "visible", timeout: 10000 });
-  const handle = mainNode.locator(".rete-title");
+  const handle = page.getByTestId("node-title-start");
   await handle.waitFor({ state: "visible", timeout: 10000 });
 
   await handle.click({ force: true });

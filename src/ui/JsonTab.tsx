@@ -17,7 +17,7 @@ export const JsonTab = ({ draft, error, onChange, onApply, onReset }: JsonTabPro
           <div className="json-subtitle">Edit IR directly and apply.</div>
         </div>
         <div className="json-actions">
-          <button className="button" onClick={onReset}>
+          <button className="button" onClick={onReset} data-testid="sync-json">
             Sync from Graph
           </button>
           <button className="button primary" onClick={onApply} data-testid="apply-json">

@@ -61,7 +61,12 @@ export const Runner = ({
       {viewModel.kind === "choice" && (
         <div className="runner-actions">
           {viewModel.choices.map((choice) => (
-            <button key={choice.key} className="button primary" onClick={() => onChoose(choice.key)}>
+            <button
+              key={choice.key}
+              className="button primary"
+              onClick={() => onChoose(choice.key)}
+              data-testid={`runner-choice-${choice.key}`}
+            >
               {choice.label}
             </button>
           ))}
@@ -69,7 +74,7 @@ export const Runner = ({
       )}
       {viewModel.kind === "text" && (
         <div className="runner-actions">
-          <button className="button primary" onClick={onNext}>
+          <button className="button primary" onClick={onNext} data-testid="runner-next">
             Next
           </button>
         </div>

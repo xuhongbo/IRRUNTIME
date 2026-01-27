@@ -19,7 +19,7 @@ test("M1 smoke: JSON apply safety", async ({ page }) => {
   await page.getByTestId("apply-json").click();
   await expect(page.locator(".json-error")).toBeVisible();
 
-  await page.getByRole("button", { name: "Sync from Graph" }).click();
+  await page.getByTestId("sync-json").click();
   await expect(editor).toHaveValue(initial);
 
   await page.getByTestId("apply-json").click();
