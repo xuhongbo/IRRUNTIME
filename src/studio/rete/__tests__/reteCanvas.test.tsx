@@ -323,6 +323,28 @@ describe("ReteCanvas", () => {
     expect(onSelectNodes).toHaveBeenCalled();
   });
 
+  it("registers test api when enabled", () => {
+    (window as unknown as { __RETE_TEST__?: boolean }).__RETE_TEST__ = true;
+    pipes.length = 0;
+    editorPipes.length = 0;
+    render(
+      <ReteCanvas
+        graph={graph}
+        registry={registry}
+        selectedNodeId={null}
+        focusedPin={null}
+        validationErrors={[]}
+        runningNodeId={null}
+        breakpoints={[]}
+        onCommand={() => undefined}
+        onSelectNode={() => undefined}
+      />
+    );
+    const api = (window as unknown as { __RETE_TEST_API__?: { connect?: () => void } }).__RETE_TEST_API__;
+    expect(api?.connect).toBeDefined();
+    (window as unknown as { __RETE_TEST__?: boolean }).__RETE_TEST__ = false;
+  });
+
   it("skips editor pipe while syncing connections", () => {
     pipes.length = 0;
     editorPipes.length = 0;

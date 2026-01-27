@@ -16,6 +16,13 @@ export type GraphContract = {
   outputs: GraphContractPort[];
 };
 
+export type GraphPreset = {
+  id: string;
+  title: string;
+  description?: string;
+  inputs: Record<string, unknown>;
+};
+
 export type PinRef = {
   nodeId: string;
   pinKey: string;
@@ -48,6 +55,7 @@ export type Graph = {
   nodes: NodeInstance[];
   edges: Edge[];
   contract?: GraphContract;
+  presets?: GraphPreset[];
   subgraphs?: Record<string, Graph>;
 };
 
@@ -56,4 +64,5 @@ export type NodeIO = {
   outputs: Record<string, unknown>;
   durationMs: number;
   error?: string;
+  logs?: string[];
 };

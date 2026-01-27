@@ -16,3 +16,37 @@ export const getGraphCenter = (graph: Graph): NodePosition => {
   }
   return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
 };
+
+export const autoLayoutGraph = (graph: Graph, spacingX = 240, spacingY = 140) => {
+  const depth = new Map<string, number>();
+  const queue: string[] = [graph.entryNodeId];
+  depth.set(graph.entryNodeId, 0);
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) continue;
+    const currentDepth = depth.get(current) ?? 0;
+    for (const edge of graph.edges) {
+      if (edge.from.nodeId !== current) continue;
+      if (!depth.has(edge.to.nodeId)) {
+        depth.set(edge.to.nodeId, currentDepth + 1);
+        queue.push(edge.to.nodeId);
+      }
+    }
+  }
+  const groups = new Map<number, Graph["nodes"][number][]>();
+  for (const node of graph.nodes) {
+    const d = depth.get(node.id) ?? 0;
+    const list = groups.get(d) ?? [];
+    list.push(node);
+    groups.set(d, list);
+  }
+  const commands = [];
+  for (const [d, nodes] of groups.entries()) {
+    nodes.sort((a, b) => a.id.localeCompare(b.id));
+    nodes.forEach((node, index) => {
+      const pos = { x: d * spacingX, y: index * spacingY };
+      commands.push({ type: "MOVE_NODE", nodeId: node.id, pos } as const);
+    });
+  }
+  return commands;
+};

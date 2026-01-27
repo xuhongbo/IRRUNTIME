@@ -50,3 +50,14 @@
   font-weight: 600;
   margin-bottom: 6px;
 }
+
+.runner-presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.runner-presets select {
+  margin-left: 6px;
+}

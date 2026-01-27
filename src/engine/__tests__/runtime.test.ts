@@ -666,4 +666,48 @@ describe("GraphRuntime", () => {
     const internal = runtime as unknown as { dataCache: Record<string, Record<string, unknown>> };
     expect(internal.dataCache.input?.value).toBe("hello");
   });
+
+  it("stores run meta preset and choices", () => {
+    const g = graph(
+      [
+        node("start", "Start"),
+        node("prompt", "ConstString", { value: "Pick" }),
+        node("wait", "WaitForChoice", { choiceALabel: "A", choiceBLabel: "B" }),
+        node("end", "End"),
+      ],
+      [
+        { id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "prompt", pinKey: "in" } },
+        { id: "e2", from: { nodeId: "prompt", pinKey: "out" }, to: { nodeId: "wait", pinKey: "in" } },
+        { id: "e3", from: { nodeId: "wait", pinKey: "choiceA" }, to: { nodeId: "end", pinKey: "in" } },
+        { id: "d1", from: { nodeId: "prompt", pinKey: "value" }, to: { nodeId: "wait", pinKey: "prompt" } },
+      ]
+    );
+    const runtime = new GraphRuntime(g, registry);
+    runtime.prepareRun({ inputs: {}, presetId: "preset-1", seed: 42 });
+    runtime.run();
+    runtime.dispatchChoice("choiceA");
+    const snapshot = runtime.getSnapshot();
+    expect(snapshot.runMeta.presetId).toBe("preset-1");
+    expect(snapshot.runMeta.choices.length).toBe(1);
+    expect(snapshot.runMeta.seed).toBe(42);
+  });
+
+  it("executes script node asynchronously", async () => {
+    const g = graph(
+      [
+        node("start", "Start"),
+        { id: "script", type: "Script", version: 1, props: { code: "utils.log('ok'); return { output: 7 };" }, pos },
+        node("end", "End"),
+      ],
+      [
+        { id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "script", pinKey: "in" } },
+        { id: "e2", from: { nodeId: "script", pinKey: "out" }, to: { nodeId: "end", pinKey: "in" } },
+      ]
+    );
+    const runtime = new GraphRuntime(g, registry);
+    runtime.run();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const io = runtime.getSnapshot().lastNodeIO.script;
+    expect(io?.logs?.[0]).toContain("ok");
+  });
 });

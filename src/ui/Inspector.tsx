@@ -226,6 +226,12 @@ export const Inspector = ({
               <div className="io-title">Outputs</div>
               <pre>{JSON.stringify(io.outputs, null, 2)}</pre>
             </div>
+            {io.logs && io.logs.length > 0 && (
+              <div className="io-block">
+                <div className="io-title">Logs</div>
+                <pre>{io.logs.join("\n")}</pre>
+              </div>
+            )}
             <div className="io-meta">
               <span>Duration: {io.durationMs.toFixed(2)} ms</span>
               {io.error && <span className="io-error">Error: {io.error}</span>}

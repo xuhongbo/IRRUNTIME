@@ -239,6 +239,29 @@ export const ReteCanvas = ({
 
     editorRef.current = editor;
     areaRef.current = area;
+    if (typeof window !== "undefined") {
+      const testEnabled = (window as unknown as { __RETE_TEST__?: boolean }).__RETE_TEST__;
+      if (testEnabled) {
+        (window as unknown as { __RETE_TEST_API__?: Record<string, unknown> }).__RETE_TEST_API__ = {
+          connect: (from: { nodeId: string; pinKey: string }, to: { nodeId: string; pinKey: string }) => {
+            onCommand({
+              type: "CONNECT",
+              edge: {
+                id: `${from.nodeId}-${from.pinKey}-${to.nodeId}-${to.pinKey}-${Date.now()}`,
+                from,
+                to,
+              },
+            });
+          },
+          move: (nodeId: string, pos: { x: number; y: number }) => {
+            onCommand(reteMoveCommand(nodeId, pos));
+          },
+          select: (nodeId: string) => {
+            onSelectNode(nodeId);
+          },
+        };
+      }
+    }
 
     return () => {
       syncingRef.current = true;

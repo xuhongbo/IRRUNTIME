@@ -5,6 +5,9 @@ export const sampleGraph: Graph = {
   version: 1,
   entryNodeId: "start",
   contract: { inputs: [], outputs: [] },
+  presets: [
+    { id: "default", title: "Default", description: "Default run inputs.", inputs: {} },
+  ],
   nodes: [
     { id: "start", type: "Start", version: 1, props: {}, pos: { x: 0, y: 0 } },
     { id: "const-flag-name", type: "ConstString", version: 1, props: { value: "flag" }, pos: { x: 240, y: 0 } },

@@ -86,6 +86,14 @@ describe("applyCommand", () => {
     expect(next.contract?.inputs[0].name).toBe("foo");
   });
 
+  it("sets presets", () => {
+    const next = applyCommand(baseGraph, {
+      type: "SET_PRESETS",
+      presets: [{ id: "p1", title: "Preset", inputs: {} }],
+    });
+    expect(next.presets?.length).toBe(1);
+  });
+
   it("returns graph on unknown command", () => {
     const next = applyCommand(baseGraph, { type: "UNKNOWN" } as unknown as never);
     expect(next).toBe(baseGraph);

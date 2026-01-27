@@ -48,6 +48,15 @@
   font-size: 12px;
 }
 
+.preset-row {
+  grid-template-columns: 1fr 1.4fr 2fr auto;
+}
+
+.preset-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .contract-empty {
   color: #9f9f9f;
   margin-bottom: 8px;

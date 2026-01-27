@@ -1,14 +1,15 @@
-import type { TraceEntry } from "../engine/runtime";
+import type { RunMeta, TraceEntry } from "../engine/runtime";
 import { formatTraceJson } from "./traceUtils";
 import "./TracePanel.css";
 
 type TracePanelProps = {
   trace: TraceEntry[];
+  runMeta: RunMeta;
 };
 
-export const TracePanel = ({ trace }: TracePanelProps) => {
+export const TracePanel = ({ trace, runMeta }: TracePanelProps) => {
   const handleCopy = async () => {
-    const payload = formatTraceJson(trace);
+    const payload = formatTraceJson(runMeta, trace);
     await navigator.clipboard.writeText(payload);
   };
 
@@ -22,6 +23,11 @@ export const TracePanel = ({ trace }: TracePanelProps) => {
         <button className="button" onClick={handleCopy} data-testid="copy-trace">
           Copy JSON
         </button>
+      </div>
+      <div className="trace-meta">
+        <div>Graph: {runMeta.graphId}@{runMeta.graphVersion}</div>
+        <div>Preset: {runMeta.presetId ?? "(none)"}</div>
+        <div>Choices: {runMeta.choices.length}</div>
       </div>
       <div className="trace-list">
         {trace.length === 0 && <div className="trace-empty">No execution yet.</div>}

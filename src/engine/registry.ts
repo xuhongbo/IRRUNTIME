@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Graph, NodeInstance } from "./ir";
 import { normalizeContract } from "./contract";
+import { runScriptInWorker } from "./scriptRunner";
 import type { ChoiceOption, ViewModel } from "./viewModel";
 
 export type PinDef = {
@@ -45,6 +46,8 @@ export type RunResult = {
   viewModel?: ViewModel;
   latent?: LatentToken;
   subgraph?: { graphId: string };
+  deferred?: Promise<RunResult>;
+  logs?: string[];
 };
 
 export type NodeDefinition = {
@@ -163,6 +166,50 @@ const graphOutputNode: NodeDefinition = {
       body: `Output ${String(ctx.props.name ?? "")} captured.`,
     },
   }),
+};
+
+const scriptNode: NodeDefinition = {
+  type: "Script",
+  version: 1,
+  title: "Script",
+  description: "Execute a sandboxed script with deterministic utilities.",
+  inputs: [
+    { key: "in", label: "In", kind: "exec" },
+    { key: "input", label: "Input", kind: "data", dataType: "json", required: false },
+  ],
+  outputs: [
+    { key: "out", label: "Out", kind: "exec" },
+    { key: "output", label: "Output", kind: "data", dataType: "json" },
+  ],
+  propsSchema: z
+    .object({
+      code: z.string().default("return { output: inputs.input };"),
+      timeoutMs: z.number().min(10).max(10000).default(500),
+    })
+    .strict(),
+  defaultProps: { code: "return { output: inputs.input };", timeoutMs: 500 },
+  form: [
+    { key: "code", label: "Code", type: "textarea" },
+    { key: "timeoutMs", label: "Timeout (ms)", type: "number" },
+  ],
+  run: (ctx) => {
+    const code = String(ctx.props.code ?? "");
+    const timeoutMs = Number(ctx.props.timeoutMs ?? 500);
+    const context = { vars: ctx.vars, graphId: ctx.graph.id };
+    const deferred = runScriptInWorker({
+      code,
+      inputs: { input: ctx.inputs.input },
+      context,
+      timeoutMs,
+      seed: 0,
+    }).then((result) => ({
+      data: { output: result.data.output ?? result.data },
+      exec: "out",
+      viewModel: { kind: "text", title: "Script", body: "Script executed." },
+      logs: result.logs,
+    }));
+    return { data: {}, deferred };
+  },
 };
 
 const setVarNode: NodeDefinition = {
@@ -572,6 +619,7 @@ const definitions: NodeDefinition[] = [
   endNode,
   graphInputNode,
   graphOutputNode,
+  scriptNode,
   setVarNode,
   getVarNode,
   ifNode,
@@ -642,6 +690,7 @@ export const registry: Registry = {
         ...graph,
         nodes: migratedNodes,
         contract: normalizeContract(graph.contract),
+        presets: graph.presets ?? [],
       },
       migrations: migrationsApplied,
     };

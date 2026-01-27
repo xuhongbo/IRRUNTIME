@@ -6,6 +6,7 @@ const contract = {
   inputs: [{ name: "count", type: "number" as const }],
   outputs: [{ name: "result", type: "string" as const }],
 };
+const presets = [{ id: "p1", title: "Preset", inputs: {} }];
 
 describe("GraphSettings", () => {
   it("applies contract updates", () => {
@@ -16,6 +17,8 @@ describe("GraphSettings", () => {
         inputValues={{}}
         onChangeInputs={() => null}
         onApplyContract={onApplyContract}
+        presets={presets}
+        onApplyPresets={() => null}
       />
     );
     const nameInputs = getAllByPlaceholderText("name");
@@ -34,6 +37,8 @@ describe("GraphSettings", () => {
         inputValues={{}}
         onChangeInputs={() => null}
         onApplyContract={onApplyContract}
+        presets={presets}
+        onApplyPresets={() => null}
       />
     );
     const examples = getAllByPlaceholderText("examples (json array)")[0];
@@ -51,11 +56,29 @@ describe("GraphSettings", () => {
         inputValues={{ count: 0 }}
         onChangeInputs={onChangeInputs}
         onApplyContract={() => null}
+        presets={presets}
+        onApplyPresets={() => null}
       />
     );
     const input = getByPlaceholderText("number");
     fireEvent.change(input, { target: { value: "42" } });
     fireEvent.click(getByText("Apply Inputs"));
     expect(onChangeInputs).toHaveBeenCalledWith({ count: 42 });
+  });
+
+  it("applies presets", () => {
+    const onApplyPresets = jest.fn();
+    const { getByText } = render(
+      <GraphSettings
+        contract={contract}
+        inputValues={{}}
+        onChangeInputs={() => null}
+        onApplyContract={() => null}
+        presets={presets}
+        onApplyPresets={onApplyPresets}
+      />
+    );
+    fireEvent.click(getByText("Apply Presets"));
+    expect(onApplyPresets).toHaveBeenCalled();
   });
 });

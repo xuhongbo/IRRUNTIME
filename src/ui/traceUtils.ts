@@ -1,5 +1,5 @@
-import type { TraceEntry } from "../engine/runtime";
+import type { RunMeta, TraceEntry } from "../engine/runtime";
 
-export const formatTraceJson = (trace: TraceEntry[]) => {
-  return JSON.stringify(trace, null, 2);
+export const formatTraceJson = (runMeta: RunMeta, trace: TraceEntry[]) => {
+  return JSON.stringify({ meta: runMeta, entries: trace }, null, 2);
 };

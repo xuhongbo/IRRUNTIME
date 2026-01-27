@@ -18,6 +18,7 @@ type GraphViewerProps = {
   onToggleSnap?: () => void;
   onAlign?: (mode: "left" | "right" | "top" | "bottom" | "centerX" | "centerY") => void;
   onDistribute?: (mode: "horizontal" | "vertical") => void;
+  onAutoLayout?: () => void;
   onSelectNode: (nodeId: string | null) => void;
   onSelectNodes?: (nodeIds: string[]) => void;
   onCommand: (command: Command) => void;
@@ -36,6 +37,7 @@ export const GraphViewer = ({
   onToggleSnap,
   onAlign,
   onDistribute,
+  onAutoLayout,
   onSelectNode,
   onSelectNodes,
   onCommand,
@@ -76,6 +78,9 @@ export const GraphViewer = ({
             </button>
             <button className="button" onClick={() => onDistribute?.("vertical")}>
               Distribute Y
+            </button>
+            <button className="button" onClick={onAutoLayout}>
+              Auto Layout
             </button>
           </div>
         </div>

@@ -15,6 +15,7 @@ export type TraceEntry = {
   outputs: Record<string, unknown>;
   exec?: string;
   error?: string;
+  logs?: string[];
 };
 
 export type RuntimeStatus = "idle" | "running" | "waiting" | "paused" | "error" | "finished";
@@ -27,8 +28,20 @@ export type RuntimeSnapshot = {
   breakpoints: string[];
   lastNodeIO: Record<string, NodeIO>;
   outputs: Record<string, unknown>;
+  runMeta: RunMeta;
   runId: number;
   errors: string[];
+};
+
+export type RunMeta = {
+  runId: number;
+  graphId: string;
+  graphVersion: number;
+  nodeVersions: Record<string, number>;
+  presetId?: string;
+  inputsSnapshot: Record<string, unknown>;
+  choices: { nodeId: string; choiceKey: string }[];
+  seed: number;
 };
 
 type GraphFrame = {
@@ -61,7 +74,14 @@ type DelayPending = {
   traceIndex: number;
 };
 
-type PendingLatent = ChoicePending | NextPending | DelayPending;
+type DeferredPending = {
+  kind: "deferred";
+  nodeId: string;
+  traceIndex: number;
+  token: number;
+};
+
+type PendingLatent = ChoicePending | NextPending | DelayPending | DeferredPending;
 
 type GraphContext = {
   graph: Graph;
@@ -87,17 +107,20 @@ export class GraphRuntime {
   private dataCache: Record<string, Record<string, unknown>> = {};
   private graphInputs: Record<string, unknown> = {};
   private graphOutputs: Record<string, unknown> = {};
+  private runMeta: RunMeta;
   private runId = 1;
   private seq = 0;
   private errors: string[] = [];
   private timers: number[] = [];
   private stepBudget = 800;
+  private deferredToken = 0;
 
   constructor(graph: Graph, registry: Registry) {
     this.rootGraph = graph;
     this.registry = registry;
     this.currentGraphId = graph.id;
     this.currentNodeId = graph.entryNodeId;
+    this.runMeta = this.createRunMeta({});
   }
 
   subscribe(listener: (snapshot: RuntimeSnapshot) => void) {
@@ -115,6 +138,7 @@ export class GraphRuntime {
       breakpoints: Array.from(this.breakpoints),
       lastNodeIO: { ...this.lastNodeIO },
       outputs: { ...this.graphOutputs },
+      runMeta: { ...this.runMeta },
       runId: this.runId,
       errors: [...this.errors],
     };
@@ -132,6 +156,14 @@ export class GraphRuntime {
 
   setInputs(inputs: Record<string, unknown>) {
     this.graphInputs = { ...inputs };
+    this.runMeta = this.createRunMeta(inputs, this.runMeta.presetId, this.runMeta.seed);
+    this.seedGraphInputs();
+    this.emit();
+  }
+
+  prepareRun(options: { inputs: Record<string, unknown>; presetId?: string; seed?: number }) {
+    this.graphInputs = { ...options.inputs };
+    this.runMeta = this.createRunMeta(options.inputs, options.presetId, options.seed);
     this.seedGraphInputs();
     this.emit();
   }
@@ -150,6 +182,7 @@ export class GraphRuntime {
     this.errors = [];
     this.seq = 0;
     this.graphOutputs = {};
+    this.runMeta = this.createRunMeta(this.graphInputs, this.runMeta.presetId, this.runMeta.seed);
     this.seedGraphInputs();
     this.runId += 1;
     this.emit();
@@ -186,7 +219,7 @@ export class GraphRuntime {
   }
 
   runWithInputs(inputs: Record<string, unknown>) {
-    this.setInputs(inputs);
+    this.prepareRun({ inputs });
     this.run();
     return { ...this.graphOutputs };
   }
@@ -224,6 +257,7 @@ export class GraphRuntime {
       this.failRuntime("Invalid choice selection.");
       return;
     }
+    this.runMeta.choices.push({ nodeId: pending.nodeId, choiceKey });
     this.pending = null;
     this.status = "running";
     this.advanceFromNode(pending.nodeId, execKey, pending.traceIndex, outputs);
@@ -287,6 +321,7 @@ export class GraphRuntime {
       outputs: result?.data ?? {},
       exec: result?.exec,
       error,
+      logs: result?.logs,
     };
     const traceIndex = this.trace.length;
     this.trace.push(traceEntry);
@@ -297,6 +332,7 @@ export class GraphRuntime {
       outputs: result?.data ?? {},
       durationMs,
       error,
+      logs: result?.logs,
     };
 
     if (error) {
@@ -307,6 +343,53 @@ export class GraphRuntime {
     if (!result) {
       this.failRuntime("Node returned no result.");
       return false;
+    }
+
+    if (result.deferred) {
+      const token = ++this.deferredToken;
+      this.pending = { kind: "deferred", nodeId: node.id, traceIndex, token };
+      this.status = "waiting";
+      result.deferred
+        .then((resolved) => {
+          if (this.deferredToken !== token) return;
+          this.pending = null;
+          this.status = "running";
+          const entry = this.trace[traceIndex];
+          if (entry) {
+            entry.outputs = resolved.data ?? {};
+            entry.exec = resolved.exec;
+            entry.error = resolved.error;
+            entry.logs = resolved.logs;
+          }
+          this.lastNodeIO[node.id] = {
+            inputs,
+            outputs: resolved.data ?? {},
+            durationMs: performance.now() - startMs,
+            error: resolved.error,
+            logs: resolved.logs,
+          };
+          if (resolved.error) {
+            this.handleNodeError(node, def, resolved.error, traceIndex);
+            this.emit();
+            return;
+          }
+          if (resolved.viewModel) {
+            this.viewModel = resolved.viewModel;
+          }
+          if (resolved.data) {
+            this.dataCache[node.id] = resolved.data;
+          }
+          this.advanceFromNode(node.id, resolved.exec, traceIndex, resolved.data ?? {});
+          this.run();
+        })
+        .catch((err) => {
+          if (this.deferredToken !== token) return;
+          this.pending = null;
+          this.status = "error";
+          this.handleNodeError(node, def, err instanceof Error ? err.message : String(err), traceIndex);
+          this.emit();
+        });
+      return true;
     }
 
     if (result.viewModel) {
@@ -507,6 +590,7 @@ export class GraphRuntime {
   private clearLatent() {
     this.pending = null;
     this.status = "idle";
+    this.deferredToken += 1;
     for (const timerId of this.timers) {
       window.clearTimeout(timerId);
     }
@@ -524,6 +608,23 @@ export class GraphRuntime {
     for (const listener of this.listeners) {
       listener(snapshot);
     }
+  }
+
+  private createRunMeta(inputs: Record<string, unknown>, presetId?: string, seed?: number): RunMeta {
+    const nodeVersions: Record<string, number> = {};
+    for (const node of this.rootGraph.nodes) {
+      nodeVersions[node.id] = node.version;
+    }
+    return {
+      runId: this.runId,
+      graphId: this.rootGraph.id,
+      graphVersion: this.rootGraph.version,
+      nodeVersions,
+      presetId,
+      inputsSnapshot: { ...inputs },
+      choices: [],
+      seed: seed ?? 0,
+    };
   }
 
   private seedGraphInputs() {

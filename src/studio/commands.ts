@@ -6,6 +6,7 @@ export type Command =
   | { type: "MOVE_NODE"; nodeId: string; pos: NodePosition }
   | { type: "SET_PROP"; nodeId: string; props: Record<string, unknown> }
   | { type: "SET_CONTRACT"; contract: Graph["contract"] }
+  | { type: "SET_PRESETS"; presets: Graph["presets"] }
   | { type: "CONNECT"; edge: Graph["edges"][number] }
   | { type: "DISCONNECT"; edgeId: string };
 
@@ -39,6 +40,11 @@ export const applyCommand = (graph: Graph, command: Command): Graph => {
       return {
         ...graph,
         contract: command.contract,
+      };
+    case "SET_PRESETS":
+      return {
+        ...graph,
+        presets: command.presets,
       };
     case "CONNECT":
       return { ...graph, edges: [...graph.edges, command.edge] };

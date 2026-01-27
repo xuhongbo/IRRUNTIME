@@ -7,6 +7,8 @@ type GraphSettingsProps = {
   inputValues: Record<string, unknown>;
   onChangeInputs: (next: Record<string, unknown>) => void;
   onApplyContract: (contract: GraphContract) => void;
+  presets: { id: string; title: string; description?: string; inputs: Record<string, unknown> }[];
+  onApplyPresets: (presets: GraphSettingsProps["presets"]) => void;
 };
 
 const dataTypes: GraphContractPort["type"][] = ["string", "number", "boolean", "json"];
@@ -16,14 +18,30 @@ export const GraphSettings = ({
   inputValues,
   onChangeInputs,
   onApplyContract,
+  presets,
+  onApplyPresets,
 }: GraphSettingsProps) => {
   const [draft, setDraft] = useState<GraphContract>(contract);
   const [inputDraft, setInputDraft] = useState<Record<string, string>>({});
   const [inputErrors, setInputErrors] = useState<Record<string, string>>({});
+  const [presetDraft, setPresetDraft] = useState<
+    { id: string; title: string; description?: string; inputs: string }[]
+  >([]);
 
   useEffect(() => {
     setDraft(contract);
   }, [contract]);
+
+  useEffect(() => {
+    setPresetDraft(
+      presets.map((preset) => ({
+        id: preset.id,
+        title: preset.title,
+        description: preset.description,
+        inputs: JSON.stringify(preset.inputs ?? {}, null, 2),
+      }))
+    );
+  }, [presets]);
 
   useEffect(() => {
     const next: Record<string, string> = {};
@@ -150,6 +168,45 @@ export const GraphSettings = ({
     setInputErrors(errors);
     if (Object.keys(errors).length === 0) {
       onApplyContract({ inputs, outputs });
+    }
+  };
+
+  const addPreset = () => {
+    setPresetDraft((prev) => [
+      ...prev,
+      { id: `preset-${Date.now()}`, title: "New Preset", description: "", inputs: "{}" },
+    ]);
+  };
+
+  const updatePreset = (index: number, next: Partial<(typeof presetDraft)[number]>) => {
+    setPresetDraft((prev) => {
+      const list = [...prev];
+      list[index] = { ...list[index], ...next };
+      return list;
+    });
+  };
+
+  const removePreset = (index: number) => {
+    setPresetDraft((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const applyPresets = () => {
+    const errors: Record<string, string> = {};
+    const mapped = presetDraft.map((preset) => {
+      const parsed = parseJsonValue(preset.inputs);
+      if (!parsed.ok || typeof parsed.value !== "object" || parsed.value === null) {
+        errors[preset.id] = "Preset inputs must be JSON object";
+      }
+      return {
+        id: preset.id,
+        title: preset.title,
+        description: preset.description,
+        inputs: parsed.ok && typeof parsed.value === "object" && parsed.value !== null ? parsed.value : {},
+      };
+    });
+    setInputErrors(errors);
+    if (Object.keys(errors).length === 0) {
+      onApplyPresets(mapped);
     }
   };
 
@@ -307,6 +364,40 @@ export const GraphSettings = ({
         <button className="button" onClick={applyInputs}>
           Apply Inputs
         </button>
+      </div>
+      <div className="graph-settings-section">
+        <div className="graph-settings-title">Presets</div>
+        {presetDraft.length === 0 && <div className="contract-empty">No presets.</div>}
+        {presetDraft.map((preset, index) => (
+          <div key={preset.id} className="contract-row preset-row">
+            <input
+              value={preset.title}
+              placeholder="title"
+              onChange={(event) => updatePreset(index, { title: event.target.value })}
+            />
+            <input
+              value={preset.description ?? ""}
+              placeholder="description"
+              onChange={(event) => updatePreset(index, { description: event.target.value })}
+            />
+            <textarea
+              value={preset.inputs}
+              placeholder="inputs (json)"
+              onChange={(event) => updatePreset(index, { inputs: event.target.value })}
+            />
+            <button className="button danger" onClick={() => removePreset(index)}>
+              Remove
+            </button>
+          </div>
+        ))}
+        <div className="preset-actions">
+          <button className="button" onClick={addPreset}>
+            Add Preset
+          </button>
+          <button className="button primary" onClick={applyPresets}>
+            Apply Presets
+          </button>
+        </div>
       </div>
     </div>
   );

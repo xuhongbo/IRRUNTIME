@@ -11,7 +11,7 @@ import { GraphSettings } from "./ui/GraphSettings";
 import { useStudio } from "./studio/useStudio";
 import { stringifyGraph } from "./studio/json";
 import { applyCommand } from "./studio/commands";
-import { getGraphCenter } from "./studio/layout";
+import { autoLayoutGraph, getGraphCenter } from "./studio/layout";
 import { Palette } from "./ui/Palette";
 import { CanvasOnly } from "./ui/CanvasOnly";
 import { useGraphSync } from "./studio/sync";
@@ -26,6 +26,10 @@ import {
 } from "./studio/history";
 import { copySelection, pasteSelection } from "./studio/clipboard";
 import { alignNodes, distributeNodes } from "./studio/align";
+import { lintGraph } from "./studio/lint";
+import { LintPanel } from "./ui/LintPanel";
+import { createNodeInstance } from "./studio/nodeFactory";
+import { CommandPalette } from "./ui/CommandPalette";
 import "./App.css";
 
 export default function App() {
@@ -54,11 +58,18 @@ const StudioApp = () => {
   const [graphInputs, setGraphInputs] = useState<Record<string, unknown>>({});
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(true);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
+  const [errorIndex, setErrorIndex] = useState(0);
   const historyRef = useRef(createHistoryState(80));
   const pendingHistoryRef = useRef(false);
   const historyActionRef = useRef<"undo" | "redo" | "remote" | null>(null);
   const clipboardRef = useRef<ReturnType<typeof copySelection> | null>(null);
+  const seedRef = useRef(1);
   const contract = useMemo(() => normalizeContract(graph.contract), [graph.contract]);
+  const presets = useMemo(() => graph.presets ?? [], [graph.presets]);
+  const lintIssues = useMemo(() => lintGraph(graph), [graph]);
 
   const buildDefaultInputs = (nextContract: typeof contract, current: Record<string, unknown>) => {
     const result: Record<string, unknown> = {};
@@ -86,6 +97,20 @@ const StudioApp = () => {
   useEffect(() => {
     setGraphInputs((current) => buildDefaultInputs(contract, current));
   }, [contract]);
+
+  useEffect(() => {
+    if (presets.length === 0) {
+      setSelectedPresetId(null);
+      return;
+    }
+    if (!selectedPresetId || !presets.some((preset) => preset.id === selectedPresetId)) {
+      setSelectedPresetId(presets[0]?.id ?? null);
+    }
+  }, [presets, selectedPresetId]);
+
+  useEffect(() => {
+    applyPresetInputs(selectedPresetId);
+  }, [selectedPresetId]);
 
   useEffect(() => {
     if (historyActionRef.current === "remote") {
@@ -208,6 +233,78 @@ const StudioApp = () => {
     sync.sendCommand(command);
   };
 
+  const applyPresets = (nextPresets: typeof presets) => {
+    const command = { type: "SET_PRESETS", presets: nextPresets } as const;
+    pendingHistoryRef.current = true;
+    updateGraph(applyCommand(graphRef.current, command));
+    sync.sendCommand(command);
+  };
+
+  const applyPresetInputs = (presetId: string | null) => {
+    if (!presetId) return;
+    const preset = presets.find((item) => item.id === presetId);
+    if (!preset) return;
+    const defaults = buildDefaultInputs(contract, {});
+    setGraphInputs({ ...defaults, ...preset.inputs });
+  };
+
+  const focusNextError = () => {
+    if (state.context.validationErrors.length === 0) return;
+    const next = state.context.validationErrors[errorIndex % state.context.validationErrors.length];
+    setErrorIndex((prev) => prev + 1);
+    if (!next.nodeId) return;
+    if (next.pinKey) {
+      send({ type: "FOCUS_PIN", nodeId: next.nodeId, pinKey: next.pinKey });
+    } else {
+      send({ type: "SELECT_NODE", nodeId: next.nodeId });
+    }
+  };
+
+  const paletteActions = useMemo(() => {
+    const addActions = registry.listTypes().map((type) => ({
+      id: `add-${type}`,
+      title: `Add Node: ${type}`,
+      keywords: type,
+      run: () => {
+        const node = createNodeInstance(type, registry, graphCenter);
+        addNode(node);
+      },
+    }));
+    return [
+      ...addActions,
+      {
+        id: "auto-layout",
+        title: "Auto Layout",
+        run: () => applyCommands(autoLayoutGraph(graphRef.current)),
+      },
+      {
+        id: "focus-error",
+        title: "Focus Next Error",
+        run: () => focusNextError(),
+      },
+      {
+        id: "run-graph",
+        title: "Run Graph",
+        run: () => runtime.run(),
+      },
+      {
+        id: "step-graph",
+        title: "Step Graph",
+        run: () => runtime.step(),
+      },
+      {
+        id: "open-json",
+        title: "Open JSON Tab",
+        run: () => setTab("json"),
+      },
+      {
+        id: "open-graph",
+        title: "Open Graph Tab",
+        run: () => setTab("graph"),
+      },
+    ];
+  }, [graphCenter, runtime, setTab, registry, errorIndex, addNode, applyCommands, focusNextError]);
+
   const handleUndo = () => {
     const result = undoHistory(historyRef.current, graphRef.current);
     if (!result.graph) return;
@@ -230,6 +327,36 @@ const StudioApp = () => {
     const onKeyDown = (event: KeyboardEvent) => {
       const isMac = window.navigator.platform.toLowerCase().includes("mac");
       const mod = isMac ? event.metaKey : event.ctrlKey;
+      if (mod && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen(true);
+        setPaletteQuery("");
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "e") {
+        event.preventDefault();
+        focusNextError();
+        return;
+      }
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+        if (selectedNodeIds.length === 0) return;
+        const step = event.shiftKey ? 50 : 10;
+        const offset = {
+          x: event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0,
+          y: event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0,
+        };
+        const commands = selectedNodeIds.map((nodeId) => {
+          const node = graphRef.current.nodes.find((n) => n.id === nodeId);
+          if (!node) return null;
+          return {
+            type: "MOVE_NODE",
+            nodeId,
+            pos: { x: node.pos.x + offset.x, y: node.pos.y + offset.y },
+          } as const;
+        }).filter(Boolean) as Parameters<typeof applyCommand>[1][];
+        applyCommands(commands);
+        return;
+      }
       if (event.key === "Delete" || event.key === "Backspace") {
         deleteSelectedNodes();
         return;
@@ -287,6 +414,13 @@ const StudioApp = () => {
 
   return (
     <div className="app" data-testid="studio-root">
+      <CommandPalette
+        open={paletteOpen}
+        query={paletteQuery}
+        actions={paletteActions}
+        onQueryChange={setPaletteQuery}
+        onClose={() => setPaletteOpen(false)}
+      />
       <header className="app-header">
         <div>
           <div className="app-title">Graph Studio Demo</div>
@@ -322,7 +456,7 @@ const StudioApp = () => {
           <button
             className="button"
             onClick={() => {
-              runtime.setInputs(graphInputs);
+              runtime.prepareRun({ inputs: graphInputs, presetId: selectedPresetId ?? undefined, seed: seedRef.current++ });
               runtime.step();
             }}
           >
@@ -331,7 +465,7 @@ const StudioApp = () => {
           <button
             className="button primary"
             onClick={() => {
-              runtime.setInputs(graphInputs);
+              runtime.prepareRun({ inputs: graphInputs, presetId: selectedPresetId ?? undefined, seed: seedRef.current++ });
               runtime.run();
             }}
           >
@@ -387,6 +521,7 @@ const StudioApp = () => {
               onDistribute={(mode) =>
                 applyCommands(distributeNodes(graphRef.current, selectedNodeIds, mode))
               }
+              onAutoLayout={() => applyCommands(autoLayoutGraph(graphRef.current))}
               onSelectNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
               onSelectNodes={(nodeIds) => {
                 setSelectedNodeIds(nodeIds);
@@ -416,10 +551,21 @@ const StudioApp = () => {
               viewModel={snapshot.viewModel}
               status={snapshot.status}
               outputs={snapshot.outputs}
+              presets={presets.map((preset) => ({ id: preset.id, title: preset.title }))}
+              selectedPresetId={selectedPresetId}
+              onSelectPreset={(presetId) => setSelectedPresetId(presetId)}
               onNext={() => runtime.dispatchNext()}
               onChoose={(choiceKey) => runtime.dispatchChoice(choiceKey)}
             />
-            <TracePanel trace={snapshot.trace} />
+            <TracePanel trace={snapshot.trace} runMeta={snapshot.runMeta} />
+            <LintPanel
+              issues={lintIssues}
+              onFix={(issue) => {
+                if (!issue.fix) return;
+                applyCommands(issue.fix.commands);
+              }}
+              onFocusNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
+            />
           </section>
         </>
       )}
@@ -447,6 +593,8 @@ const StudioApp = () => {
             inputValues={graphInputs}
             onChangeInputs={(next) => setGraphInputs(next)}
             onApplyContract={applyContract}
+            presets={presets}
+            onApplyPresets={applyPresets}
           />
         </section>
       )}
