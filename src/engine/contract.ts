@@ -4,8 +4,14 @@ import type { NodeDefinition, PinDef, Registry } from "./registry";
 export type ContractKind = "inputs" | "outputs";
 
 export const normalizeContract = (contract?: GraphContract): GraphContract => ({
-  inputs: contract?.inputs ?? [],
-  outputs: contract?.outputs ?? [],
+  inputs: (contract?.inputs ?? []).map((item) => ({
+    ...item,
+    required: item.required ?? false,
+  })),
+  outputs: (contract?.outputs ?? []).map((item) => ({
+    ...item,
+    required: item.required ?? true,
+  })),
 });
 
 export const findContractPort = (
@@ -27,7 +33,8 @@ export const buildGraphInputPins = (graph: Graph, name: string): PinDef[] => {
       label,
       kind: "data",
       dataType: port?.type ?? "json",
-      required: true,
+      required: port?.required ?? true,
+      defaultValue: port?.defaultValue,
     },
   ];
 };
@@ -46,7 +53,7 @@ export const buildGraphOutputPins = (graph: Graph, name: string): PinDef[] => {
       label,
       kind: "data",
       dataType: port?.type ?? "json",
-      required: true,
+      required: port?.required ?? true,
     },
   ];
 };

@@ -26,6 +26,23 @@ describe("GraphSettings", () => {
     expect(next.inputs[0].name).toBe("total");
   });
 
+  it("parses examples array", () => {
+    const onApplyContract = jest.fn();
+    const { getAllByPlaceholderText, getByText } = render(
+      <GraphSettings
+        contract={contract}
+        inputValues={{}}
+        onChangeInputs={() => null}
+        onApplyContract={onApplyContract}
+      />
+    );
+    const examples = getAllByPlaceholderText("examples (json array)")[0];
+    fireEvent.change(examples, { target: { value: "[1,2]" } });
+    fireEvent.click(getByText("Apply Contract"));
+    const next = onApplyContract.mock.calls[0][0];
+    expect(next.inputs[0].examples).toEqual([1, 2]);
+  });
+
   it("applies input values", () => {
     const onChangeInputs = jest.fn();
     const { getByText, getByPlaceholderText } = render(

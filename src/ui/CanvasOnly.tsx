@@ -15,7 +15,9 @@ type CanvasOnlyProps = {
   runningNodeId: string | null;
   breakpoints: string[];
   suppressDrag?: boolean;
+  snapToGrid?: boolean;
   onSelectNode: (nodeId: string | null) => void;
+  onSelectNodes?: (nodeIds: string[]) => void;
   onCommand: (command: Command) => void;
   onBackToStudio?: () => void;
 };
@@ -29,7 +31,9 @@ export const CanvasOnly = ({
   runningNodeId,
   breakpoints,
   suppressDrag,
+  snapToGrid,
   onSelectNode,
+  onSelectNodes,
   onCommand,
   onBackToStudio,
 }: CanvasOnlyProps) => {
@@ -54,13 +58,15 @@ export const CanvasOnly = ({
           registry={registry}
           selectedNodeId={selectedNodeId}
           focusedPin={focusedPin}
-        validationErrors={validationErrors}
-        runningNodeId={runningNodeId}
-        breakpoints={breakpoints}
-        suppressDrag={suppressDrag}
-        onCommand={onCommand}
-        onSelectNode={onSelectNode}
-      />
+          validationErrors={validationErrors}
+          runningNodeId={runningNodeId}
+          breakpoints={breakpoints}
+          suppressDrag={suppressDrag}
+          snapToGrid={snapToGrid}
+          onCommand={onCommand}
+          onSelectNode={onSelectNode}
+          onSelectNodes={onSelectNodes}
+        />
       </div>
     </div>
   );

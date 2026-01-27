@@ -5,6 +5,10 @@ export type DataType = "string" | "number" | "boolean" | "json";
 export type GraphContractPort = {
   name: string;
   type: DataType;
+  required?: boolean;
+  defaultValue?: unknown;
+  description?: string;
+  examples?: unknown[];
 };
 
 export type GraphContract = {

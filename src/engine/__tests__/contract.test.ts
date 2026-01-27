@@ -68,5 +68,6 @@ describe("contract helpers", () => {
     expect(names.outputs).toEqual(["bar"]);
     expect(hasDuplicateNames(["a", "a"])).toBe(true);
     expect(hasDuplicateNames(["a", "b"])).toBe(false);
+    expect(contract.outputs[0].required).toBe(true);
   });
 });

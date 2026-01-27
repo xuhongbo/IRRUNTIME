@@ -24,8 +24,11 @@ export type ReteCanvasProps = {
   runningNodeId: string | null;
   breakpoints: string[];
   suppressDrag?: boolean;
+  snapToGrid?: boolean;
+  gridSize?: number;
   onCommand: (command: Command) => void;
   onSelectNode: (nodeId: string | null) => void;
+  onSelectNodes?: (nodeIds: string[]) => void;
 };
 
 type Schemes = BaseSchemes & {
@@ -41,8 +44,11 @@ export const ReteCanvas = ({
   runningNodeId,
   breakpoints,
   suppressDrag = false,
+  snapToGrid = true,
+  gridSize = 20,
   onCommand,
   onSelectNode,
+  onSelectNodes,
 }: ReteCanvasProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<NodeEditor<Schemes> | null>(null);
@@ -56,6 +62,7 @@ export const ReteCanvas = ({
   const graphRef = useRef(graph);
   const logRef = useRef({ init: false });
   const syncTokenRef = useRef(0);
+  const selectorRef = useRef(AreaExtensions.selector());
 
   const debugLog = (label: string, data?: Record<string, unknown>) => {
     if (typeof window === "undefined") return;
@@ -87,6 +94,7 @@ export const ReteCanvas = ({
   }, [suppressDrag]);
 
   const nowMs = () => Date.now();
+  const snap = (value: number) => (snapToGrid ? Math.round(value / gridSize) * gridSize : value);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -150,9 +158,15 @@ export const ReteCanvas = ({
     editor.use(area);
     area.use(reactRender);
     area.use(connection);
-    AreaExtensions.selectableNodes(area, AreaExtensions.selector(), {
+    AreaExtensions.selectableNodes(area, selectorRef.current, {
       accumulating: AreaExtensions.accumulateOnCtrl(),
     });
+
+    const notifySelection = () => {
+      if (!onSelectNodes) return;
+      const selected = Array.from(selectorRef.current.entities.keys());
+      onSelectNodes(selected);
+    };
 
     area.addPipe((context) => {
       /* istanbul ignore if -- sync guard is exercised only during live editor updates */
@@ -166,15 +180,24 @@ export const ReteCanvas = ({
       }
       if (context.type === "nodepicked") {
         onSelectNode(context.data.id);
+        notifySelection();
+      }
+      if (context.type === "pointerup") {
+        notifySelection();
       }
       if (context.type === "nodedragged") {
         const node = context.data;
         if (node?.id) {
-          dragLockRef.current.set(node.id, nowMs());
-          const view = area.nodeViews.get(node.id);
-          if (view) {
-            const pos = { x: view.position.x, y: view.position.y };
-            onCommand(reteMoveCommand(node.id, pos));
+          const entities = selectorRef.current.entities;
+          const selectedIds = Array.from(entities ? entities.keys() : []);
+          const targetIds = selectedIds.length > 0 ? selectedIds : [node.id];
+          for (const id of targetIds) {
+            dragLockRef.current.set(id, nowMs());
+            const view = area.nodeViews.get(id);
+            if (view) {
+              const pos = { x: snap(view.position.x), y: snap(view.position.y) };
+              onCommand(reteMoveCommand(id, pos));
+            }
           }
         }
       }

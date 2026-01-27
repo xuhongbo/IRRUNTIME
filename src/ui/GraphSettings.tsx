@@ -58,7 +58,7 @@ export const GraphSettings = ({
   const addContractItem = (kind: "inputs" | "outputs") => {
     setDraft((prev) => ({
       ...prev,
-      [kind]: [...prev[kind], { name: "", type: "string" }],
+      [kind]: [...prev[kind], { name: "", type: "string", required: kind === "outputs" }],
     }));
   };
 
@@ -88,6 +88,14 @@ export const GraphSettings = ({
     return { ok: true, value: raw };
   };
 
+  const parseJsonValue = (raw: string): { ok: boolean; value: unknown } => {
+    try {
+      return { ok: true, value: JSON.parse(raw) };
+    } catch (err) {
+      return { ok: false, value: null };
+    }
+  };
+
   const applyInputs = () => {
     const next: Record<string, unknown> = { ...inputValues };
     const errors: Record<string, string> = {};
@@ -103,6 +111,45 @@ export const GraphSettings = ({
     setInputErrors(errors);
     if (Object.keys(errors).length === 0) {
       onChangeInputs(next);
+    }
+  };
+
+  const applyContract = () => {
+    const errors: Record<string, string> = {};
+    const convert = (item: GraphContractPort) => {
+      const next: GraphContractPort = { ...item };
+      if (next.type === "json" && typeof next.defaultValue === "string") {
+        const result = parseJsonValue(next.defaultValue);
+        if (!result.ok) {
+          errors[`${next.name}-default`] = "Default JSON invalid";
+        } else {
+          next.defaultValue = result.value;
+        }
+      } else if (next.type === "number" && typeof next.defaultValue === "string") {
+        const value = Number(next.defaultValue);
+        if (Number.isNaN(value)) {
+          errors[`${next.name}-default`] = "Default number invalid";
+        } else {
+          next.defaultValue = value;
+        }
+      } else if (next.type === "boolean" && typeof next.defaultValue === "string") {
+        next.defaultValue = next.defaultValue === "true";
+      }
+      if (typeof next.examples === "string") {
+        const result = parseJsonValue(next.examples);
+        if (!result.ok || !Array.isArray(result.value)) {
+          errors[`${next.name}-examples`] = "Examples must be JSON array";
+        } else {
+          next.examples = result.value;
+        }
+      }
+      return next;
+    };
+    const inputs = draft.inputs.filter((item) => item.name.trim().length > 0).map(convert);
+    const outputs = draft.outputs.filter((item) => item.name.trim().length > 0).map(convert);
+    setInputErrors(errors);
+    if (Object.keys(errors).length === 0) {
+      onApplyContract({ inputs, outputs });
     }
   };
 
@@ -137,6 +184,37 @@ export const GraphSettings = ({
                   </option>
                 ))}
               </select>
+              <label className="contract-check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(item.required)}
+                  onChange={(event) => updateContractItem("inputs", index, { required: event.target.checked })}
+                />
+                Required
+              </label>
+              <input
+                value={item.description ?? ""}
+                placeholder="description"
+                onChange={(event) => updateContractItem("inputs", index, { description: event.target.value })}
+              />
+              {item.type === "json" ? (
+                <textarea
+                  value={typeof item.defaultValue === "string" ? item.defaultValue : JSON.stringify(item.defaultValue ?? null, null, 2)}
+                  placeholder="default (json)"
+                  onChange={(event) => updateContractItem("inputs", index, { defaultValue: event.target.value })}
+                />
+              ) : (
+                <input
+                  value={item.defaultValue === undefined ? "" : String(item.defaultValue)}
+                  placeholder="default"
+                  onChange={(event) => updateContractItem("inputs", index, { defaultValue: event.target.value })}
+                />
+              )}
+              <textarea
+                value={typeof item.examples === "string" ? item.examples : JSON.stringify(item.examples ?? [], null, 2)}
+                placeholder="examples (json array)"
+                onChange={(event) => updateContractItem("inputs", index, { examples: event.target.value })}
+              />
               <button className="button danger" onClick={() => removeContractItem("inputs", index)}>
                 Remove
               </button>
@@ -170,6 +248,24 @@ export const GraphSettings = ({
                   </option>
                 ))}
               </select>
+              <label className="contract-check">
+                <input
+                  type="checkbox"
+                  checked={item.required ?? true}
+                  onChange={(event) => updateContractItem("outputs", index, { required: event.target.checked })}
+                />
+                Required
+              </label>
+              <input
+                value={item.description ?? ""}
+                placeholder="description"
+                onChange={(event) => updateContractItem("outputs", index, { description: event.target.value })}
+              />
+              <textarea
+                value={typeof item.examples === "string" ? item.examples : JSON.stringify(item.examples ?? [], null, 2)}
+                placeholder="examples (json array)"
+                onChange={(event) => updateContractItem("outputs", index, { examples: event.target.value })}
+              />
               <button className="button danger" onClick={() => removeContractItem("outputs", index)}>
                 Remove
               </button>
@@ -178,7 +274,7 @@ export const GraphSettings = ({
         </div>
         <button
           className="button primary"
-          onClick={() => onApplyContract({ inputs: [...normalized.inputs], outputs: [...normalized.outputs] })}
+          onClick={applyContract}
         >
           Apply Contract
         </button>

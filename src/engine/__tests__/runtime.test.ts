@@ -647,4 +647,23 @@ describe("GraphRuntime", () => {
     expect(internal.dataCache.input?.value).toBe("value");
     expect(internal.dataCache["input-bad"]).toBeUndefined();
   });
+
+  it("uses default input value from contract", () => {
+    const g = graph(
+      [
+        node("start", "Start"),
+        { id: "input", type: "GraphInput", version: 1, props: { name: "defaulted" }, pos },
+      ],
+      [],
+      "start",
+      {
+        inputs: [{ name: "defaulted", type: "string", defaultValue: "hello" }],
+        outputs: [],
+      }
+    );
+    const runtime = new GraphRuntime(g, registry);
+    runtime.setInputs({});
+    const internal = runtime as unknown as { dataCache: Record<string, Record<string, unknown>> };
+    expect(internal.dataCache.input?.value).toBe("hello");
+  });
 });

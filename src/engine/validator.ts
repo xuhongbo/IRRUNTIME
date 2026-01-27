@@ -184,6 +184,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
   }
 
   for (const output of contract.outputs) {
+    if (output.required === false) continue;
     const hasNode = graph.nodes.some(
       (node) => node.type === "GraphOutput" && node.props.name === output.name
     );

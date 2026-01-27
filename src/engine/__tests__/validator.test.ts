@@ -253,6 +253,19 @@ describe("validateGraph", () => {
     expect(result.errors.some((err) => err.message.includes("result"))).toBe(true);
   });
 
+  it("does not require optional graph outputs", () => {
+    const graph: Graph = {
+      id: "g",
+      version: 1,
+      entryNodeId: "start",
+      nodes: [{ id: "start", type: "Start", version: 1, props: {}, pos: basePos }],
+      edges: [],
+      contract: { inputs: [], outputs: [{ name: "opt", type: "string", required: false }] },
+    };
+    const result = validateGraph(graph, registry);
+    expect(result.ok).toBe(true);
+  });
+
   it("flags graph input/output names not in contract", () => {
     const graph: Graph = {
       id: "g",

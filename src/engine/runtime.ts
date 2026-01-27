@@ -528,12 +528,13 @@ export class GraphRuntime {
 
   private seedGraphInputs() {
     const contract = normalizeContract(this.rootGraph.contract);
-    const inputMap = new Map(contract.inputs.map((item) => [item.name, item.type]));
+    const inputMap = new Map(contract.inputs.map((item) => [item.name, item]));
     for (const node of this.rootGraph.nodes) {
       if (node.type !== "GraphInput") continue;
       const name = typeof node.props.name === "string" ? node.props.name : "";
-      if (!name || !inputMap.has(name)) continue;
-      const value = this.graphInputs[name];
+      const port = name ? inputMap.get(name) : undefined;
+      if (!name || !port) continue;
+      const value = this.graphInputs[name] ?? port.defaultValue;
       this.dataCache[node.id] = { value };
     }
   }

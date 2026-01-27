@@ -78,7 +78,7 @@ jest.mock("rete-area-plugin", () => {
     AreaPlugin,
     AreaExtensions: {
       selectableNodes: () => ({ select: () => Promise.resolve(), unselect: () => Promise.resolve() }),
-      selector: () => ({ unselectAll: () => Promise.resolve() }),
+      selector: () => ({ entities: new Map(), unselectAll: () => Promise.resolve() }),
       accumulateOnCtrl: () => ({ active: () => false, destroy: () => undefined }),
     },
   };
@@ -261,7 +261,7 @@ describe("ReteCanvas", () => {
     pipe({ type: "nodepicked", data: { id: "start" } });
     pipe({ type: "nodedragged", data: { id: "start" } });
     expect(onSelectNode).toHaveBeenCalledWith("start");
-    expect(onCommand).toHaveBeenCalledWith({ type: "MOVE_NODE", nodeId: "start", pos: { x: 42, y: 55 } });
+    expect(onCommand).toHaveBeenCalledWith({ type: "MOVE_NODE", nodeId: "start", pos: { x: 40, y: 60 } });
   });
 
   it("suppresses drag commands during sync cooldown", async () => {
@@ -295,6 +295,32 @@ describe("ReteCanvas", () => {
     pipe({ type: "nodedragged", data: { id: "start" } });
     expect(onSelectNode).toHaveBeenCalledWith("start");
     expect(onCommand).not.toHaveBeenCalled();
+  });
+
+  it("notifies selection list when available", () => {
+    pipes.length = 0;
+    editorPipes.length = 0;
+    const onCommand = jest.fn();
+    const onSelectNode = jest.fn();
+    const onSelectNodes = jest.fn();
+    render(
+      <ReteCanvas
+        graph={graph}
+        registry={registry}
+        selectedNodeId={null}
+        focusedPin={null}
+        validationErrors={[]}
+        runningNodeId={null}
+        breakpoints={[]}
+        onCommand={onCommand}
+        onSelectNode={onSelectNode}
+        onSelectNodes={onSelectNodes}
+      />
+    );
+    const pipe = pipes[pipes.length - 1];
+    pipe({ type: "nodepicked", data: { id: "start" } });
+    pipe({ type: "pointerup", data: { id: "start" } });
+    expect(onSelectNodes).toHaveBeenCalled();
   });
 
   it("skips editor pipe while syncing connections", () => {

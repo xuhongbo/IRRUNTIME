@@ -31,7 +31,7 @@
 
 .contract-row {
   display: grid;
-  grid-template-columns: 1fr 140px auto;
+  grid-template-columns: 1fr 140px 120px 1fr 1.2fr 1.4fr auto;
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;
@@ -39,6 +39,13 @@
 
 .contract-row textarea {
   min-height: 60px;
+}
+
+.contract-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
 }
 
 .contract-empty {

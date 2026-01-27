@@ -24,6 +24,8 @@ import {
   redoHistory,
   undoHistory,
 } from "./studio/history";
+import { copySelection, pasteSelection } from "./studio/clipboard";
+import { alignNodes, distributeNodes } from "./studio/align";
 import "./App.css";
 
 export default function App() {
@@ -50,9 +52,12 @@ const StudioApp = () => {
   const pendingSnapshotRef = useRef(false);
   const [isRemoteSyncing, setIsRemoteSyncing] = useState(false);
   const [graphInputs, setGraphInputs] = useState<Record<string, unknown>>({});
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  const [snapToGrid, setSnapToGrid] = useState(true);
   const historyRef = useRef(createHistoryState(80));
   const pendingHistoryRef = useRef(false);
   const historyActionRef = useRef<"undo" | "redo" | "remote" | null>(null);
+  const clipboardRef = useRef<ReturnType<typeof copySelection> | null>(null);
   const contract = useMemo(() => normalizeContract(graph.contract), [graph.contract]);
 
   const buildDefaultInputs = (nextContract: typeof contract, current: Record<string, unknown>) => {
@@ -60,6 +65,10 @@ const StudioApp = () => {
     for (const input of nextContract.inputs) {
       if (input.name in current) {
         result[input.name] = current[input.name];
+        continue;
+      }
+      if (input.defaultValue !== undefined) {
+        result[input.name] = input.defaultValue;
         continue;
       }
       if (input.type === "number") result[input.name] = 0;
@@ -156,10 +165,35 @@ const StudioApp = () => {
     send({ type: "SELECT_NODE", nodeId: null });
   };
 
+  const deleteSelectedNodes = () => {
+    if (selectedNodeIds.length === 0) return;
+    let next = graphRef.current;
+    pendingHistoryRef.current = true;
+    for (const nodeId of selectedNodeIds) {
+      const command = { type: "DELETE_NODE", nodeId } as const;
+      next = applyCommand(next, command);
+      sync.sendCommand(command);
+    }
+    updateGraph(next);
+    send({ type: "SELECT_NODE", nodeId: null });
+    setSelectedNodeIds([]);
+  };
+
   const handleCommand = (command: Parameters<typeof applyCommand>[1]) => {
     pendingHistoryRef.current = true;
     updateGraph(applyCommand(graphRef.current, command));
     sync.sendCommand(command);
+  };
+
+  const applyCommands = (commands: Parameters<typeof applyCommand>[1][]) => {
+    if (commands.length === 0) return;
+    let next = graphRef.current;
+    pendingHistoryRef.current = true;
+    for (const command of commands) {
+      next = applyCommand(next, command);
+      sync.sendCommand(command);
+    }
+    updateGraph(next);
   };
 
   const handleOpenCanvasWindow = () => {
@@ -196,6 +230,43 @@ const StudioApp = () => {
     const onKeyDown = (event: KeyboardEvent) => {
       const isMac = window.navigator.platform.toLowerCase().includes("mac");
       const mod = isMac ? event.metaKey : event.ctrlKey;
+      if (event.key === "Delete" || event.key === "Backspace") {
+        deleteSelectedNodes();
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        clipboardRef.current = copySelection(graphRef.current, selectedNodeIds);
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "x") {
+        event.preventDefault();
+        clipboardRef.current = copySelection(graphRef.current, selectedNodeIds);
+        deleteSelectedNodes();
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        if (!clipboardRef.current) return;
+        const payload = clipboardRef.current;
+        const pasted = pasteSelection(payload, { x: 24, y: 24 });
+        let next = graphRef.current;
+        pendingHistoryRef.current = true;
+        for (const node of pasted.nodes) {
+          const command = { type: "ADD_NODE", node } as const;
+          next = applyCommand(next, command);
+          sync.sendCommand(command);
+        }
+        for (const edge of pasted.edges) {
+          const command = { type: "CONNECT", edge } as const;
+          next = applyCommand(next, command);
+          sync.sendCommand(command);
+        }
+        updateGraph(next);
+        setSelectedNodeIds(pasted.nodes.map((node) => node.id));
+        send({ type: "SELECT_NODE", nodeId: pasted.nodes[0]?.id ?? null });
+        return;
+      }
       if (!mod) return;
       if (event.key.toLowerCase() === "z") {
         event.preventDefault();
@@ -212,7 +283,7 @@ const StudioApp = () => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [selectedNodeIds]);
 
   return (
     <div className="app" data-testid="studio-root">
@@ -310,7 +381,17 @@ const StudioApp = () => {
               runningNodeId={snapshot.currentNodeId}
               breakpoints={snapshot.breakpoints}
               suppressDrag={isRemoteSyncing}
+              snapToGrid={snapToGrid}
+              onToggleSnap={() => setSnapToGrid((prev) => !prev)}
+              onAlign={(mode) => applyCommands(alignNodes(graphRef.current, selectedNodeIds, mode))}
+              onDistribute={(mode) =>
+                applyCommands(distributeNodes(graphRef.current, selectedNodeIds, mode))
+              }
               onSelectNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
+              onSelectNodes={(nodeIds) => {
+                setSelectedNodeIds(nodeIds);
+                send({ type: "SELECT_NODE", nodeId: nodeIds[0] ?? null });
+              }}
               onCommand={handleCommand}
             />
             <Inspector
@@ -453,6 +534,7 @@ const CanvasOnlyApp = () => {
       runningNodeId={null}
       breakpoints={[]}
       suppressDrag={isRemoteSyncing}
+      snapToGrid
       onSelectNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
       onCommand={handleCommand}
       onBackToStudio={() => {
