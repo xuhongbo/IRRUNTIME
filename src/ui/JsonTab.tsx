@@ -13,15 +13,15 @@ export const JsonTab = ({ draft, error, onChange, onApply, onReset }: JsonTabPro
     <div className="json-tab" data-testid="json-tab">
       <div className="json-header">
         <div>
-          <div className="json-title">Graph JSON</div>
-          <div className="json-subtitle">Edit IR directly and apply.</div>
+          <div className="json-title">图 JSON</div>
+          <div className="json-subtitle">可直接编辑并应用到画布。</div>
         </div>
         <div className="json-actions">
           <button className="button" onClick={onReset} data-testid="sync-json">
-            Sync from Graph
+            从图同步
           </button>
           <button className="button primary" onClick={onApply} data-testid="apply-json">
-            Apply JSON
+            应用 JSON
           </button>
         </div>
       </div>

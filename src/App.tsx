@@ -9,6 +9,7 @@ import { TracePanel } from "./ui/TracePanel";
 import { JsonTab } from "./ui/JsonTab";
 import { GraphSettings } from "./ui/GraphSettings";
 import { useStudio } from "./studio/useStudio";
+import { setRuntimeState } from "./studio/ecs";
 import { stringifyGraph } from "./studio/json";
 import { applyCommand } from "./studio/commands";
 import { autoLayoutGraph, getGraphCenter } from "./studio/layout";
@@ -47,13 +48,14 @@ const StudioApp = () => {
       console.info("app:render");
     }
   }
-  const { state, send, updateGraph } = useStudio();
+  const { state, send, updateGraph, ecs } = useStudio();
   const graph = state.context.graph;
   const graphRef = useRef(graph);
-  const { runtime, snapshot } = useRuntime(graph, registry);
+  const { snapshot, send: runtimeSend } = useRuntime(graph, registry);
   const [tab, setTab] = useState<"studio" | "json" | "graph">("studio");
   const graphCenter = useMemo(() => getGraphCenter(graph), [graph]);
   const pendingSnapshotRef = useRef(false);
+  const pendingApplyJsonRef = useRef(false);
   const [isRemoteSyncing, setIsRemoteSyncing] = useState(false);
   const [graphInputs, setGraphInputs] = useState<Record<string, unknown>>({});
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -93,6 +95,10 @@ const StudioApp = () => {
   useEffect(() => {
     graphRef.current = graph;
   }, [graph]);
+
+  useEffect(() => {
+    setRuntimeState(ecs, snapshot);
+  }, [ecs, snapshot]);
 
   useEffect(() => {
     setGraphInputs((current) => buildDefaultInputs(contract, current));
@@ -150,22 +156,33 @@ const StudioApp = () => {
     }
   }, [graph, sync]);
 
+  useEffect(() => {
+    if (!pendingApplyJsonRef.current) return;
+    pendingApplyJsonRef.current = false;
+    sync.sendCommand({ type: "APPLY_JSON", graph });
+  }, [graph, sync]);
+
+  useEffect(() => {
+    if (!state.context.jsonError) return;
+    pendingApplyJsonRef.current = false;
+  }, [state.context.jsonError]);
+
   const statusBlock = useMemo(() => {
     switch (state.context.validationStatus) {
       case "validating":
-        return <div className="status-block warn">Validating...</div>;
-      case "valid":
-        return <div className="status-block ok">Graph validated.</div>;
-      case "invalid":
-        return (
-          <div className="status-block error">
-            {state.context.validationErrors.length} validation error(s). Fix before running.
-          </div>
-        );
-      default:
-        return <div className="status-block">Idle.</div>;
-    }
-  }, [state.context.validationErrors.length, state.context.validationStatus]);
+      return <div className="status-block warn">校验中...</div>;
+    case "valid":
+      return <div className="status-block ok">校验通过。</div>;
+    case "invalid":
+      return (
+        <div className="status-block error">
+          存在 {state.context.validationErrors.length} 条校验错误，请修复后再运行。
+        </div>
+      );
+    default:
+      return <div className="status-block">空闲。</div>;
+  }
+}, [state.context.validationErrors.length, state.context.validationStatus]);
 
   const applyProps = (nodeId: string, props: Record<string, unknown>) => {
     const command = { type: "SET_PROP", nodeId, props } as const;
@@ -221,6 +238,13 @@ const StudioApp = () => {
     updateGraph(next);
   };
 
+  const applyGraphReplace = (nextGraph: Graph) => {
+    const command = { type: "APPLY_JSON", graph: nextGraph } as const;
+    pendingHistoryRef.current = true;
+    updateGraph(applyCommand(graphRef.current, command));
+    sync.sendCommand(command);
+  };
+
   const handleOpenCanvasWindow = () => {
     if (typeof window === "undefined") return;
     window.open("/canvas", "graph-canvas", "popup,width=1400,height=900");
@@ -253,8 +277,8 @@ const StudioApp = () => {
     const next = state.context.validationErrors[errorIndex % state.context.validationErrors.length];
     setErrorIndex((prev) => prev + 1);
     if (!next.nodeId) return;
-    if (next.pinKey) {
-      send({ type: "FOCUS_PIN", nodeId: next.nodeId, pinKey: next.pinKey });
+    if (next.pinId) {
+      send({ type: "FOCUS_PIN", nodeId: next.nodeId, pinKey: next.pinId });
     } else {
       send({ type: "SELECT_NODE", nodeId: next.nodeId });
     }
@@ -263,7 +287,7 @@ const StudioApp = () => {
   const paletteActions = useMemo(() => {
     const addActions = registry.listTypes().map((type) => ({
       id: `add-${type}`,
-      title: `Add Node: ${type}`,
+      title: `添加节点：${type}`,
       keywords: type,
       run: () => {
         const node = createNodeInstance(type, registry, graphCenter);
@@ -274,7 +298,7 @@ const StudioApp = () => {
       ...addActions,
       {
         id: "duplicate-selection",
-        title: "Duplicate Selection",
+        title: "复制选中节点",
         run: () => {
           const duplicated = duplicateSelection(graphRef.current, selectedNodeIds);
           if (!duplicated) return;
@@ -297,36 +321,59 @@ const StudioApp = () => {
       },
       {
         id: "auto-layout",
-        title: "Auto Layout",
-        run: () => applyCommands(autoLayoutGraph(graphRef.current)),
+        title: "自动布局",
+        run: () => applyCommands(autoLayoutGraph(graphRef.current, registry)),
       },
       {
         id: "focus-error",
-        title: "Focus Next Error",
+        title: "定位下一个错误",
         run: () => focusNextError(),
       },
       {
         id: "run-graph",
-        title: "Run Graph",
-        run: () => runtime.run(),
+        title: "运行图",
+        run: () =>
+          runtimeSend({
+            type: "RUN_WITH_INPUTS",
+            inputs: graphInputs,
+            presetId: selectedPresetId ?? undefined,
+            seed: seedRef.current++,
+          }),
       },
       {
         id: "step-graph",
-        title: "Step Graph",
-        run: () => runtime.step(),
+        title: "单步执行",
+        run: () =>
+          runtimeSend({
+            type: "STEP_WITH_INPUTS",
+            inputs: graphInputs,
+            presetId: selectedPresetId ?? undefined,
+            seed: seedRef.current++,
+          }),
       },
       {
         id: "open-json",
-        title: "Open JSON Tab",
+        title: "打开 JSON 视图",
         run: () => setTab("json"),
       },
       {
         id: "open-graph",
-        title: "Open Graph Tab",
+        title: "打开外化视图",
         run: () => setTab("graph"),
       },
     ];
-  }, [graphCenter, runtime, setTab, registry, errorIndex, addNode, applyCommands, focusNextError]);
+  }, [
+    graphCenter,
+    runtimeSend,
+    graphInputs,
+    selectedPresetId,
+    setTab,
+    registry,
+    errorIndex,
+    addNode,
+    applyCommands,
+    focusNextError,
+  ]);
 
   const handleUndo = () => {
     const result = undoHistory(historyRef.current, graphRef.current);
@@ -334,7 +381,7 @@ const StudioApp = () => {
     historyRef.current = result.state;
     historyActionRef.current = "undo";
     pendingSnapshotRef.current = true;
-    updateGraph(result.graph);
+    applyGraphReplace(result.graph);
   };
 
   const handleRedo = () => {
@@ -343,7 +390,7 @@ const StudioApp = () => {
     historyRef.current = result.state;
     historyActionRef.current = "redo";
     pendingSnapshotRef.current = true;
-    updateGraph(result.graph);
+    applyGraphReplace(result.graph);
   };
 
   const isEditableTarget = (target: EventTarget | null) => {
@@ -484,8 +531,8 @@ const StudioApp = () => {
       />
       <header className="app-header">
         <div>
-          <div className="app-title">Graph Studio Demo</div>
-          <div className="app-subtitle">Blueprints semantics with n8n-style metadata UI</div>
+          <div className="app-title">图工作室演示</div>
+          <div className="app-subtitle">蓝图语义 + 元数据表单</div>
         </div>
         <div className="app-actions">
           <button
@@ -494,7 +541,7 @@ const StudioApp = () => {
             disabled={!canUndo(historyRef.current)}
             onClick={handleUndo}
           >
-            Undo
+            撤销
           </button>
           <button
             className="button"
@@ -502,37 +549,45 @@ const StudioApp = () => {
             disabled={!canRedo(historyRef.current)}
             onClick={handleRedo}
           >
-            Redo
+            重做
           </button>
           <button
             className="button"
             data-testid="open-canvas-window"
             onClick={handleOpenCanvasWindow}
           >
-            Open Canvas Window
+            打开画布窗口
           </button>
-          <button className="button" onClick={() => runtime.reset()} data-testid="reset-run">
-            Reset
+          <button className="button" onClick={() => runtimeSend({ type: "RESET" })} data-testid="reset-run">
+            重置
           </button>
           <button
             className="button"
             onClick={() => {
-              runtime.prepareRun({ inputs: graphInputs, presetId: selectedPresetId ?? undefined, seed: seedRef.current++ });
-              runtime.step();
+              runtimeSend({
+                type: "STEP_WITH_INPUTS",
+                inputs: graphInputs,
+                presetId: selectedPresetId ?? undefined,
+                seed: seedRef.current++,
+              });
             }}
             data-testid="step-run"
           >
-            Step
+            单步
           </button>
           <button
             className="button primary"
             onClick={() => {
-              runtime.prepareRun({ inputs: graphInputs, presetId: selectedPresetId ?? undefined, seed: seedRef.current++ });
-              runtime.run();
+              runtimeSend({
+                type: "RUN_WITH_INPUTS",
+                inputs: graphInputs,
+                presetId: selectedPresetId ?? undefined,
+                seed: seedRef.current++,
+              });
             }}
             data-testid="start-run"
           >
-            Run
+            运行
           </button>
           <div className={`status-pill ${snapshot.status}`} data-testid="status-pill">
             {snapshot.status}
@@ -548,7 +603,7 @@ const StudioApp = () => {
             onClick={() => setTab("studio")}
             data-testid="tab-studio"
           >
-            Studio
+            工作区
           </button>
           <button
             className={`tab ${tab === "json" ? "active" : ""}`}
@@ -562,7 +617,7 @@ const StudioApp = () => {
             onClick={() => setTab("graph")}
             data-testid="tab-graph"
           >
-            Graph
+            外化
           </button>
         </div>
       </section>
@@ -578,8 +633,8 @@ const StudioApp = () => {
               selectedNodeIds={selectedNodeIds}
               focusedPin={state.context.focusedPin}
               validationErrors={state.context.validationErrors}
-              runningNodeId={snapshot.currentNodeId}
-              breakpoints={snapshot.breakpoints}
+              runningNodeId={ecs.runningNodeId}
+              breakpoints={ecs.breakpoints}
               suppressDrag={isRemoteSyncing}
               snapToGrid={snapToGrid}
               onToggleSnap={() => setSnapToGrid((prev) => !prev)}
@@ -587,7 +642,7 @@ const StudioApp = () => {
               onDistribute={(mode) =>
                 applyCommands(distributeNodes(graphRef.current, selectedNodeIds, mode))
               }
-              onAutoLayout={() => applyCommands(autoLayoutGraph(graphRef.current))}
+              onAutoLayout={() => applyCommands(autoLayoutGraph(graphRef.current, registry))}
               onSelectNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
               onSelectNodes={(nodeIds) => {
                 setSelectedNodeIds(nodeIds);
@@ -599,16 +654,16 @@ const StudioApp = () => {
               graph={graph}
               nodeId={state.context.selectedNodeId}
               registry={registry}
-              lastNodeIO={snapshot.lastNodeIO}
+              lastNodeIO={ecs.lastNodeIO}
               validationErrors={state.context.validationErrors}
               onApplyProps={applyProps}
               onDeleteNode={deleteNode}
               hasBreakpoint={
                 state.context.selectedNodeId
-                  ? snapshot.breakpoints.includes(state.context.selectedNodeId)
+                  ? ecs.breakpoints.includes(state.context.selectedNodeId)
                   : false
               }
-              onToggleBreakpoint={(nodeId) => runtime.toggleBreakpoint(nodeId)}
+              onToggleBreakpoint={(nodeId) => runtimeSend({ type: "TOGGLE_BREAKPOINT", nodeId })}
             />
           </main>
 
@@ -620,10 +675,10 @@ const StudioApp = () => {
               presets={presets.map((preset) => ({ id: preset.id, title: preset.title }))}
               selectedPresetId={selectedPresetId}
               onSelectPreset={(presetId) => setSelectedPresetId(presetId)}
-              onNext={() => runtime.dispatchNext()}
-              onChoose={(choiceKey) => runtime.dispatchChoice(choiceKey)}
+              onNext={() => runtimeSend({ type: "NEXT" })}
+              onChoose={(choiceKey) => runtimeSend({ type: "CHOOSE", choiceKey })}
             />
-            <TracePanel trace={snapshot.trace} runMeta={snapshot.runMeta} />
+            <TracePanel trace={ecs.trace} runMeta={snapshot.runMeta} />
             <LintPanel
               issues={lintIssues}
               onFix={(issue) => {
@@ -645,6 +700,7 @@ const StudioApp = () => {
             onApply={() => {
               pendingSnapshotRef.current = true;
               pendingHistoryRef.current = true;
+              pendingApplyJsonRef.current = true;
               send({ type: "APPLY_JSON" });
             }}
             onReset={() => send({ type: "SYNC_JSON", draft: stringifyGraph(graph) })}
@@ -667,19 +723,19 @@ const StudioApp = () => {
 
       {state.context.validationStatus === "invalid" && (
         <section className="errors-panel" data-testid="errors-panel">
-          <div className="errors-title">Validation Errors</div>
+          <div className="errors-title">校验错误</div>
           <div className="errors-list" data-testid="errors-list">
             {state.context.validationErrors.map((err, index) => (
               <div
                 key={`${err.nodeId ?? "graph"}-${index}`}
                 className="errors-item"
-                data-testid={`error-${err.nodeId ?? "graph"}${err.pinKey ? `-${err.pinKey}` : ""}`}
+                data-testid={`error-${err.nodeId ?? "graph"}${err.pinId ? `-${err.pinId}` : ""}`}
                 role="button"
                 tabIndex={0}
                 onClick={() => {
                   if (!err.nodeId) return;
-                  if (err.pinKey) {
-                    send({ type: "FOCUS_PIN", nodeId: err.nodeId, pinKey: err.pinKey });
+                  if (err.pinId) {
+                    send({ type: "FOCUS_PIN", nodeId: err.nodeId, pinKey: err.pinId });
                   } else {
                     send({ type: "SELECT_NODE", nodeId: err.nodeId });
                   }
@@ -687,15 +743,15 @@ const StudioApp = () => {
                 onKeyDown={(event) => {
                   if (event.key !== "Enter") return;
                   if (!err.nodeId) return;
-                  if (err.pinKey) {
-                    send({ type: "FOCUS_PIN", nodeId: err.nodeId, pinKey: err.pinKey });
+                  if (err.pinId) {
+                    send({ type: "FOCUS_PIN", nodeId: err.nodeId, pinKey: err.pinId });
                   } else {
                     send({ type: "SELECT_NODE", nodeId: err.nodeId });
                   }
                 }}
               >
                 <strong>{err.nodeId ?? "(graph)"}</strong>
-                {err.pinKey ? `.${err.pinKey}` : ""}: {err.message}
+                {err.pinId ? `.${err.pinId}` : ""}: {err.message}
               </div>
             ))}
           </div>

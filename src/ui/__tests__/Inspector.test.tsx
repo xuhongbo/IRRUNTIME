@@ -35,7 +35,7 @@ describe("Inspector", () => {
 
     const input = getByLabelText("Title") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "New Title" } });
-    fireEvent.click(getByRole("button", { name: "Apply" }));
+    fireEvent.click(getByRole("button", { name: "应用" }));
 
     expect(onApplyProps).toHaveBeenCalledTimes(1);
     expect(onApplyProps).toHaveBeenCalledWith("show", { title: "New Title" });

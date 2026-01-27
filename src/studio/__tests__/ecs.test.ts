@@ -1,7 +1,7 @@
 jest.mock("bitecs");
 import { hasComponent } from "bitecs";
 import type { Graph } from "../../engine/ir";
-import { createEcsState, setSelection, setValidationState, syncGraphToEcs, Selected } from "../ecs";
+import { createEcsState, setRuntimeState, setSelection, setValidationState, syncGraphToEcs, Selected } from "../ecs";
 
 const pos = { x: 0, y: 0 };
 
@@ -59,5 +59,33 @@ describe("ecs", () => {
     setValidationState(ecs, "invalid", [{ message: "bad", nodeId: "a" }]);
     expect(ecs.validationStatus).toBe("invalid");
     expect(ecs.validationErrors.length).toBe(1);
+  });
+
+  it("stores runtime state snapshot", () => {
+    const graph = makeGraph(["a"], "a");
+    const ecs = createEcsState(graph);
+    setRuntimeState(ecs, {
+      status: "running",
+      currentNodeId: "a",
+      viewModel: null,
+      trace: [],
+      breakpoints: ["a"],
+      lastNodeIO: {},
+      outputs: {},
+      runMeta: {
+        runId: 1,
+        graphId: "g",
+        graphVersion: 1,
+        nodeVersions: {},
+        inputsSnapshot: {},
+        choices: [],
+        seed: 0,
+      },
+      runId: 1,
+      errors: [],
+    });
+    expect(ecs.runtimeStatus).toBe("running");
+    expect(ecs.runningNodeId).toBe("a");
+    expect(ecs.breakpoints).toEqual(["a"]);
   });
 });

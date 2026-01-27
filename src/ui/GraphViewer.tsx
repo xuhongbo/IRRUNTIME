@@ -48,41 +48,42 @@ export const GraphViewer = ({
     <div className="graph-viewer">
       <div className="graph-header">
         <div>
-          <div className="graph-title">Graph Viewer</div>
-          <div className="graph-subtitle">{graph.id}</div>
+          <div className="graph-title">图编辑器</div>
+          <div className="graph-subtitle">图标识：{graph.id}</div>
+          <div className="graph-hint">提示：拖拽空白处平移，滚轮缩放，按住 Ctrl/⌘ 可多选。</div>
         </div>
         <div className="graph-meta">
-          <span>Nodes: {graph.nodes.length}</span>
+          <span>节点数：{graph.nodes.length}</span>
           <div className="graph-tools">
             <button className="button" onClick={onToggleSnap}>
-              {snapToGrid ? "Snap On" : "Snap Off"}
+              {snapToGrid ? "网格对齐：开" : "网格对齐：关"}
             </button>
             <button className="button" onClick={() => onAlign?.("left")}>
-              Align Left
+              左对齐
             </button>
             <button className="button" onClick={() => onAlign?.("top")}>
-              Align Top
+              顶对齐
             </button>
             <button className="button" onClick={() => onAlign?.("centerX")}>
-              Align Center X
+              水平居中
             </button>
             <button className="button" onClick={() => onAlign?.("centerY")}>
-              Align Center Y
+              垂直居中
             </button>
             <button className="button" onClick={() => onAlign?.("right")}>
-              Align Right
+              右对齐
             </button>
             <button className="button" onClick={() => onAlign?.("bottom")}>
-              Align Bottom
+              底对齐
             </button>
             <button className="button" onClick={() => onDistribute?.("horizontal")}>
-              Distribute X
+              水平分布
             </button>
             <button className="button" onClick={() => onDistribute?.("vertical")}>
-              Distribute Y
+              垂直分布
             </button>
             <button className="button" onClick={onAutoLayout}>
-              Auto Layout
+              自动布局
             </button>
           </div>
         </div>

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useMachine } from "@xstate/react";
 import type { Graph } from "../engine/ir";
 import type { Registry } from "../engine/registry";
 import { GraphRuntime } from "../engine/runtime";
-import type { RuntimeSnapshot } from "../engine/runtime";
+import { createRuntimeMachine } from "../studio/runtimeMachine";
 
 export const useRuntime = (graph: Graph, registry: Registry) => {
   if (typeof window !== "undefined") {
@@ -12,18 +13,20 @@ export const useRuntime = (graph: Graph, registry: Registry) => {
     }
   }
   const runtime = useMemo(() => new GraphRuntime(graph, registry), [registry]);
-  const [snapshot, setSnapshot] = useState<RuntimeSnapshot>(runtime.getSnapshot());
+  const runtimeMachine = useMemo(() => createRuntimeMachine(runtime), [runtime]);
+  const [state, send] = useMachine(runtimeMachine);
+  const snapshot = state.context.snapshot;
 
   useEffect(() => {
-    const unsubscribe = runtime.subscribe(setSnapshot);
+    const unsubscribe = runtime.subscribe((next) => send({ type: "RUNTIME_UPDATED", snapshot: next }));
     return () => {
       unsubscribe();
     };
-  }, [runtime]);
+  }, [runtime, send]);
 
   useEffect(() => {
-    runtime.setGraph(graph);
-  }, [graph, runtime]);
+    send({ type: "SET_GRAPH", graph });
+  }, [graph, send]);
 
-  return { runtime, snapshot };
+  return { runtime, snapshot, send };
 };

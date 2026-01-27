@@ -12,11 +12,11 @@ export const LintPanel = ({ issues, onFix, onFocusNode }: LintPanelProps) => {
     <div className="lint-panel">
       <div className="lint-header">
         <div>
-          <div className="lint-title">Lint</div>
-          <div className="lint-subtitle">{issues.length} issues</div>
+          <div className="lint-title">建议</div>
+          <div className="lint-subtitle">{issues.length} 条建议</div>
         </div>
       </div>
-      {issues.length === 0 && <div className="lint-empty">No lint issues.</div>}
+      {issues.length === 0 && <div className="lint-empty">暂无建议。</div>}
       <div className="lint-list">
         {issues.map((issue) => (
           <div key={issue.id} className={`lint-item ${issue.severity}`}>

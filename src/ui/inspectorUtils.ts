@@ -32,10 +32,10 @@ export const groupNodeErrors = (
   const pinErrors = new Map<string, string[]>();
   for (const err of errors) {
     if (err.nodeId !== nodeId) continue;
-    if (err.pinKey) {
-      const bucket = pinErrors.get(err.pinKey) ?? [];
+    if (err.pinId) {
+      const bucket = pinErrors.get(err.pinId) ?? [];
       bucket.push(err.message);
-      pinErrors.set(err.pinKey, bucket);
+      pinErrors.set(err.pinId, bucket);
     } else {
       nodeErrors.push(err);
     }

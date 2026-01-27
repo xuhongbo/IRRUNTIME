@@ -145,7 +145,7 @@ const graphOutputNode: NodeDefinition = {
     { key: "in", label: "In", kind: "exec" },
     { key: "value", label: "Value", kind: "data", dataType: "json", required: true },
   ],
-  outputs: [],
+  outputs: [{ key: "out", label: "Out", kind: "exec" }],
   propsSchema: z.object({ name: z.string().default("") }).strict(),
   defaultProps: { name: "" },
   form: [
@@ -159,7 +159,7 @@ const graphOutputNode: NodeDefinition = {
   ],
   run: (ctx) => ({
     data: { value: ctx.inputs.value },
-    exec: undefined,
+    exec: "out",
     viewModel: {
       kind: "text",
       title: "Graph Output",
@@ -179,6 +179,7 @@ const scriptNode: NodeDefinition = {
   ],
   outputs: [
     { key: "out", label: "Out", kind: "exec" },
+    { key: "onError", label: "On Error", kind: "exec" },
     { key: "output", label: "Output", kind: "data", dataType: "json" },
   ],
   propsSchema: z
@@ -451,6 +452,29 @@ const toNumberNode: NodeDefinition = {
   },
 };
 
+const toStringNode: NodeDefinition = {
+  type: "ToString",
+  version: 1,
+  title: "To String",
+  description: "Convert a JSON value into a string.",
+  inputs: [
+    { key: "in", label: "In", kind: "exec" },
+    { key: "value", label: "Value", kind: "data", dataType: "json", required: true },
+  ],
+  outputs: [
+    { key: "out", label: "Out", kind: "exec" },
+    { key: "text", label: "Text", kind: "data", dataType: "string" },
+  ],
+  propsSchema: z.object({}).strict(),
+  defaultProps: {},
+  form: [],
+  run: (ctx) => ({
+    data: { text: String(ctx.inputs.value ?? "") },
+    exec: "out",
+    viewModel: { kind: "text", title: "ToString", body: "Converted to string." },
+  }),
+};
+
 const showTextNodeV2: NodeDefinition = {
   type: "ShowText",
   version: 2,
@@ -647,6 +671,7 @@ const definitions: NodeDefinition[] = [
   constBooleanNode,
   constJsonNode,
   toNumberNode,
+  toStringNode,
   showTextNodeV2,
   waitChoiceNode,
   delayNode,

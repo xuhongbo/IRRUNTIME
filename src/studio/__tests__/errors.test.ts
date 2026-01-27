@@ -4,8 +4,8 @@ describe("buildErrorMap", () => {
   it("groups node and pin errors by node id", () => {
     const errors = [
       { nodeId: "a", message: "Node error" },
-      { nodeId: "a", pinKey: "in", message: "Pin error" },
-      { nodeId: "b", pinKey: "x", message: "Other pin" },
+      { nodeId: "a", pinId: "in", message: "Pin error" },
+      { nodeId: "b", pinId: "x", message: "Other pin" },
     ];
     const map = buildErrorMap(errors);
     const a = map.get("a");

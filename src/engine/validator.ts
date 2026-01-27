@@ -4,8 +4,9 @@ import { findContractPort, hasDuplicateNames, normalizeContract, resolveNodeDefi
 
 export type ValidationError = {
   nodeId?: string;
-  pinKey?: string;
+  pinId?: string;
   message: string;
+  severity?: "error" | "warning";
 };
 
 export const isAssignable = (fromType: PinDef["dataType"], toType: PinDef["dataType"]) => {
@@ -40,38 +41,39 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
     const fromNode = nodeMap.get(edge.from.nodeId);
     const toNode = nodeMap.get(edge.to.nodeId);
     if (!fromNode) {
-      errors.push({ message: "Edge source node missing.", nodeId: edge.from.nodeId, pinKey: edge.from.pinKey });
+      errors.push({ message: "Edge source node missing.", nodeId: edge.from.nodeId, pinId: edge.from.pinKey, severity: "error" });
       continue;
     }
     if (!toNode) {
-      errors.push({ message: "Edge target node missing.", nodeId: edge.to.nodeId, pinKey: edge.to.pinKey });
+      errors.push({ message: "Edge target node missing.", nodeId: edge.to.nodeId, pinId: edge.to.pinKey, severity: "error" });
       continue;
     }
     const fromResolved = resolveNodeDefinition(fromNode, graph, registry);
     const toResolved = resolveNodeDefinition(toNode, graph, registry);
     if (!fromResolved) {
-      errors.push({ message: "Unknown node type.", nodeId: fromNode.id });
+      errors.push({ message: "Unknown node type.", nodeId: fromNode.id, severity: "error" });
       continue;
     }
     if (!toResolved) {
-      errors.push({ message: "Unknown node type.", nodeId: toNode.id });
+      errors.push({ message: "Unknown node type.", nodeId: toNode.id, severity: "error" });
       continue;
     }
     const fromPin = fromResolved.outputs.find((pin) => pin.key === edge.from.pinKey);
     const toPin = toResolved.inputs.find((pin) => pin.key === edge.to.pinKey);
     if (!fromPin) {
-      errors.push({ message: "Edge source pin missing.", nodeId: fromNode.id, pinKey: edge.from.pinKey });
+      errors.push({ message: "Edge source pin missing.", nodeId: fromNode.id, pinId: edge.from.pinKey, severity: "error" });
       continue;
     }
     if (!toPin) {
-      errors.push({ message: "Edge target pin missing.", nodeId: toNode.id, pinKey: edge.to.pinKey });
+      errors.push({ message: "Edge target pin missing.", nodeId: toNode.id, pinId: edge.to.pinKey, severity: "error" });
       continue;
     }
     if (fromPin.kind !== toPin.kind) {
       errors.push({
         message: "Edge connects incompatible pin kinds.",
         nodeId: toNode.id,
-        pinKey: edge.to.pinKey,
+        pinId: edge.to.pinKey,
+        severity: "error",
       });
       continue;
     }
@@ -79,7 +81,8 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       errors.push({
         message: "Edge connects incompatible data types.",
         nodeId: toNode.id,
-        pinKey: edge.to.pinKey,
+        pinId: edge.to.pinKey,
+        severity: "error",
       });
     }
   }
@@ -107,7 +110,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
   for (const node of graph.nodes) {
     const resolved = resolveNodeDefinition(node, graph, registry);
     if (!resolved) {
-      errors.push({ message: "Unknown node type.", nodeId: node.id });
+      errors.push({ message: "Unknown node type.", nodeId: node.id, severity: "error" });
       continue;
     }
     const propsResult = resolved.def.propsSchema.safeParse(node.props);
@@ -115,6 +118,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       errors.push({
         message: "Node props failed schema validation.",
         nodeId: node.id,
+        severity: "error",
       });
     }
     const toMap = edgesByTo.get(node.id) ?? new Map();
@@ -127,7 +131,8 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
           errors.push({
             message: "Data input has multiple incoming edges.",
             nodeId: node.id,
-            pinKey: pin.key,
+            pinId: pin.key,
+            severity: "error",
           });
         }
         const hasEdge = incomingCount > 0;
@@ -136,7 +141,8 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
           errors.push({
             message: "Required input pin missing connection.",
             nodeId: node.id,
-            pinKey: pin.key,
+            pinId: pin.key,
+            severity: "error",
           });
         }
       }
@@ -144,7 +150,8 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
         errors.push({
           message: "Exec input has multiple incoming edges.",
           nodeId: node.id,
-          pinKey: pin.key,
+          pinId: pin.key,
+          severity: "error",
         });
       }
     }
@@ -156,7 +163,8 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
           errors.push({
             message: "Exec output has multiple outgoing edges.",
             nodeId: node.id,
-            pinKey: pin.key,
+            pinId: pin.key,
+            severity: "error",
           });
         }
       }
@@ -168,6 +176,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
         errors.push({
           message: "Graph input name is not declared in contract.",
           nodeId: node.id,
+          severity: "error",
         });
       }
     }
@@ -178,6 +187,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
         errors.push({
           message: "Graph output name is not declared in contract.",
           nodeId: node.id,
+          severity: "error",
         });
       }
     }
@@ -192,6 +202,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       errors.push({
         message: `Graph output "${output.name}" is missing a GraphOutput node.`,
         nodeId: graph.entryNodeId,
+        severity: "error",
       });
     }
   }

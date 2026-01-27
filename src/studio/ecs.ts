@@ -2,6 +2,7 @@ import { addComponent, addEntity, createWorld, removeComponent, removeEntity } f
 import type { Graph } from "../engine/ir";
 import type { ValidationError } from "../engine/validator";
 import type { ValidationStatus } from "./machine";
+import type { RuntimeSnapshot } from "../engine/runtime";
 
 export const GraphRef = {};
 export const NodeTag = {};
@@ -15,6 +16,11 @@ export type EcsState = {
   selectedNodeId: string | null;
   validationStatus: ValidationStatus;
   validationErrors: ValidationError[];
+  runtimeStatus: RuntimeSnapshot["status"];
+  runningNodeId: string | null;
+  breakpoints: string[];
+  trace: RuntimeSnapshot["trace"];
+  lastNodeIO: RuntimeSnapshot["lastNodeIO"];
 };
 
 export const createEcsState = (graph: Graph): EcsState => {
@@ -34,6 +40,11 @@ export const createEcsState = (graph: Graph): EcsState => {
     selectedNodeId: graph.entryNodeId,
     validationStatus: "idle",
     validationErrors: [],
+    runtimeStatus: "idle",
+    runningNodeId: null,
+    breakpoints: [],
+    trace: [],
+    lastNodeIO: {},
   };
 };
 
@@ -77,4 +88,12 @@ export const setValidationState = (
 ) => {
   state.validationStatus = status;
   state.validationErrors = errors;
+};
+
+export const setRuntimeState = (state: EcsState, snapshot: RuntimeSnapshot) => {
+  state.runtimeStatus = snapshot.status;
+  state.runningNodeId = snapshot.currentNodeId;
+  state.breakpoints = snapshot.breakpoints;
+  state.trace = snapshot.trace;
+  state.lastNodeIO = snapshot.lastNodeIO;
 };

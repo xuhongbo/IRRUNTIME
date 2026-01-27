@@ -26,7 +26,7 @@ export const findContractPort = (
 
 export const buildGraphInputPins = (graph: Graph, name: string): PinDef[] => {
   const port = findContractPort(graph, "inputs", name);
-  const label = name ? `Input ${name}` : "Input";
+  const label = name ? `输入 ${name}` : "输入";
   return [
     {
       key: "value",
@@ -41,11 +41,11 @@ export const buildGraphInputPins = (graph: Graph, name: string): PinDef[] => {
 
 export const buildGraphOutputPins = (graph: Graph, name: string): PinDef[] => {
   const port = findContractPort(graph, "outputs", name);
-  const label = name ? `Output ${name}` : "Output";
+  const label = name ? `输出 ${name}` : "输出";
   return [
     {
       key: "in",
-      label: "In",
+      label: "执行",
       kind: "exec",
     },
     {
@@ -71,7 +71,7 @@ export const resolveNodeDefinition = (
   }
   if (node.type === "GraphOutput") {
     const name = typeof node.props.name === "string" ? node.props.name : "";
-    return { def, inputs: buildGraphOutputPins(graph, name), outputs: [] };
+    return { def, inputs: buildGraphOutputPins(graph, name), outputs: def.outputs };
   }
   return { def, inputs: def.inputs, outputs: def.outputs };
 };

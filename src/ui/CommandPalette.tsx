@@ -43,7 +43,7 @@ export const CommandPalette = ({ open, query, actions, onQueryChange, onClose }:
       <div className="command-palette">
         <input
           autoFocus
-          placeholder="Search commands"
+          placeholder="搜索命令"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
         />
@@ -60,7 +60,7 @@ export const CommandPalette = ({ open, query, actions, onQueryChange, onClose }:
               {action.title}
             </button>
           ))}
-          {filtered.length === 0 && <div className="command-empty">No matches.</div>}
+          {filtered.length === 0 && <div className="command-empty">无匹配命令。</div>}
         </div>
       </div>
     </div>

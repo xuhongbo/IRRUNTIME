@@ -1,4 +1,6 @@
 import type { Graph, NodePosition } from "../engine/ir";
+import type { Registry } from "../engine/registry";
+import { resolveNodeDefinition } from "../engine/contract";
 
 export const getGraphCenter = (graph: Graph): NodePosition => {
   if (graph.nodes.length === 0) {
@@ -17,7 +19,21 @@ export const getGraphCenter = (graph: Graph): NodePosition => {
   return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
 };
 
-export const autoLayoutGraph = (graph: Graph, spacingX = 240, spacingY = 140) => {
+export const autoLayoutGraph = (
+  graph: Graph,
+  registry: Registry,
+  spacingX = 240,
+  spacingY = 140
+) => {
+  const execEdges = graph.edges.filter((edge) => {
+    const sourceNode = graph.nodes.find((node) => node.id === edge.from.nodeId);
+    if (!sourceNode) return false;
+    const resolved = resolveNodeDefinition(sourceNode, graph, registry);
+    if (!resolved) return false;
+    const pin = resolved.outputs.find((output) => output.key === edge.from.pinKey);
+    return pin?.kind === "exec";
+  });
+  const edges = execEdges.length > 0 ? execEdges : graph.edges;
   const depth = new Map<string, number>();
   const queue: string[] = [graph.entryNodeId];
   depth.set(graph.entryNodeId, 0);
@@ -25,7 +41,7 @@ export const autoLayoutGraph = (graph: Graph, spacingX = 240, spacingY = 140) =>
     const current = queue.shift();
     if (!current) continue;
     const currentDepth = depth.get(current) ?? 0;
-    for (const edge of graph.edges) {
+    for (const edge of edges) {
       if (edge.from.nodeId !== current) continue;
       if (!depth.has(edge.to.nodeId)) {
         depth.set(edge.to.nodeId, currentDepth + 1);

@@ -46,8 +46,8 @@ export const Inspector = ({
       <div className="inspector" data-testid="inspector-root">
         <div className="inspector-header">
           <div>
-            <div className="inspector-title">Inspector</div>
-            <div className="inspector-subtitle">Select a node</div>
+            <div className="inspector-title">检查器</div>
+            <div className="inspector-subtitle">请选择一个节点</div>
           </div>
         </div>
       </div>
@@ -61,10 +61,22 @@ export const Inspector = ({
       return def.form;
     }
     const contract = normalizeContract(graph.contract);
+    const typeLabels: Record<string, string> = {
+      string: "字符串",
+      number: "数字",
+      boolean: "布尔",
+      json: "JSON",
+    };
     const options =
       node.type === "GraphInput"
-        ? contract.inputs.map((item) => ({ value: item.name, label: `${item.name} (${item.type})` }))
-        : contract.outputs.map((item) => ({ value: item.name, label: `${item.name} (${item.type})` }));
+        ? contract.inputs.map((item) => ({
+            value: item.name,
+            label: `${item.name}（${typeLabels[item.type] ?? item.type}）`,
+          }))
+        : contract.outputs.map((item) => ({
+            value: item.name,
+            label: `${item.name}（${typeLabels[item.type] ?? item.type}）`,
+          }));
     return def.form.map((field) =>
       field.key === "name" ? { ...field, options } : field
     );
@@ -81,7 +93,7 @@ export const Inspector = ({
             const parsed = JSON.parse(raw);
             nextProps[field.key] = parsed;
           } catch (err) {
-            errors[field.key] = "Invalid JSON";
+            errors[field.key] = "JSON 无效";
           }
         }
       }
@@ -100,7 +112,7 @@ export const Inspector = ({
     <div className="inspector" data-testid="inspector-root">
       <div className="inspector-header">
         <div>
-          <div className="inspector-title">Inspector</div>
+          <div className="inspector-title">检查器</div>
           <div className="inspector-subtitle">
             {node.type}@{node.version}
           </div>
@@ -114,16 +126,16 @@ export const Inspector = ({
             onClick={() => onToggleBreakpoint(node.id)}
             data-testid="toggle-breakpoint"
           >
-            {hasBreakpoint ? "Breakpoint On" : "Add Breakpoint"}
+            {hasBreakpoint ? "断点已开" : "添加断点"}
           </button>
           <button className="button danger" onClick={() => onDeleteNode(node.id)} data-testid="delete-node">
-            Delete
+            删除
           </button>
         </div>
       </div>
       <div className="inspector-section">
-        <div className="inspector-section-title">Properties</div>
-        {resolvedForm.length === 0 && <div className="inspector-empty">No editable props.</div>}
+        <div className="inspector-section-title">属性</div>
+        {resolvedForm.length === 0 && <div className="inspector-empty">暂无可编辑属性。</div>}
         {resolvedForm.map((field) => (
           <FieldEditor
             key={field.key}
@@ -136,21 +148,21 @@ export const Inspector = ({
           />
         ))}
         <button className="button primary" onClick={apply} data-testid="inspector-apply">
-          Apply
+          应用
         </button>
         <div className="props-preview" data-testid="props-preview">
-          <div className="props-preview-title">Current Props</div>
+          <div className="props-preview-title">当前属性</div>
           <pre>{JSON.stringify(node.props, null, 2)}</pre>
         </div>
       </div>
       <div className="inspector-section">
-        <div className="inspector-section-title">Pins</div>
-        {!pinStatus && <div className="inspector-empty">No pin metadata.</div>}
+        <div className="inspector-section-title">引脚</div>
+        {!pinStatus && <div className="inspector-empty">暂无引脚信息。</div>}
         {pinStatus && (
           <div className="pin-grid">
             <div className="pin-group">
-              <div className="pin-group-title">Inputs</div>
-              {pinStatus.inputs.length === 0 && <div className="inspector-empty">No inputs.</div>}
+              <div className="pin-group-title">输入</div>
+              {pinStatus.inputs.length === 0 && <div className="inspector-empty">暂无输入。</div>}
               {pinStatus.inputs.map((pin) => (
                 <div
                   key={`in-${pin.key}`}
@@ -159,12 +171,12 @@ export const Inspector = ({
                   }`}
                 >
                   <div className="pin-main">
-                    <span className={`pin-kind ${pin.kind}`}>{pin.kind}</span>
+                    <span className={`pin-kind ${pin.kind}`}>{pin.kind === "exec" ? "执行" : "数据"}</span>
                     <span className="pin-label">{pin.label}</span>
                     {pin.dataType && <span className="pin-type">{pin.dataType}</span>}
                   </div>
                   <div className="pin-meta">
-                    {pin.connected ? `${pin.connections} conn` : pin.required ? "required" : "optional"}
+                    {pin.connected ? `${pin.connections} 条连接` : pin.required ? "必填" : "可选"}
                   </div>
                   {pin.errors.length > 0 && (
                     <div className="pin-errors">
@@ -177,8 +189,8 @@ export const Inspector = ({
               ))}
             </div>
             <div className="pin-group">
-              <div className="pin-group-title">Outputs</div>
-              {pinStatus.outputs.length === 0 && <div className="inspector-empty">No outputs.</div>}
+              <div className="pin-group-title">输出</div>
+              {pinStatus.outputs.length === 0 && <div className="inspector-empty">暂无输出。</div>}
               {pinStatus.outputs.map((pin) => (
                 <div
                   key={`out-${pin.key}`}
@@ -187,12 +199,12 @@ export const Inspector = ({
                   }`}
                 >
                   <div className="pin-main">
-                    <span className={`pin-kind ${pin.kind}`}>{pin.kind}</span>
+                    <span className={`pin-kind ${pin.kind}`}>{pin.kind === "exec" ? "执行" : "数据"}</span>
                     <span className="pin-label">{pin.label}</span>
                     {pin.dataType && <span className="pin-type">{pin.dataType}</span>}
                   </div>
                   <div className="pin-meta">
-                    {pin.connected ? `${pin.connections} conn` : pin.required ? "required" : "optional"}
+                    {pin.connected ? `${pin.connections} 条连接` : pin.required ? "必填" : "可选"}
                   </div>
                   {pin.errors.length > 0 && (
                     <div className="pin-errors">
@@ -209,7 +221,7 @@ export const Inspector = ({
       </div>
       {errorGroups.nodeErrors.length > 0 && (
         <div className="inspector-section">
-          <div className="inspector-section-title">Node Errors</div>
+          <div className="inspector-section-title">节点错误</div>
           <div className="pin-errors">
             {errorGroups.nodeErrors.map((err, index) => (
               <div key={`${node.id}-node-err-${index}`}>{err.message}</div>
@@ -218,27 +230,27 @@ export const Inspector = ({
         </div>
       )}
       <div className="inspector-section">
-        <div className="inspector-section-title">Node IO</div>
-        {!io && <div className="inspector-empty">No execution recorded yet.</div>}
+        <div className="inspector-section-title">节点输入输出</div>
+        {!io && <div className="inspector-empty">暂无运行记录。</div>}
         {io && (
           <div className="io-grid">
             <div className="io-block">
-              <div className="io-title">Inputs</div>
+              <div className="io-title">输入</div>
               <pre>{JSON.stringify(io.inputs, null, 2)}</pre>
             </div>
             <div className="io-block">
-              <div className="io-title">Outputs</div>
+              <div className="io-title">输出</div>
               <pre>{JSON.stringify(io.outputs, null, 2)}</pre>
             </div>
             {io.logs && io.logs.length > 0 && (
               <div className="io-block">
-                <div className="io-title">Logs</div>
+                <div className="io-title">日志</div>
                 <pre>{io.logs.join("\n")}</pre>
               </div>
             )}
             <div className="io-meta">
-              <span>Duration: {io.durationMs.toFixed(2)} ms</span>
-              {io.error && <span className="io-error">Error: {io.error}</span>}
+              <span>耗时：{io.durationMs.toFixed(2)} ms</span>
+              {io.error && <span className="io-error">错误：{io.error}</span>}
             </div>
           </div>
         )}

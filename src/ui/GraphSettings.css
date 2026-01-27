@@ -18,6 +18,14 @@
   margin-bottom: 12px;
 }
 
+.graph-settings-desc {
+  margin-top: -6px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #b2b2b2;
+  line-height: 1.4;
+}
+
 .contract-group {
   margin-bottom: 16px;
 }

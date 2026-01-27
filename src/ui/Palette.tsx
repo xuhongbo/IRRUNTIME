@@ -35,16 +35,16 @@ export const Palette = ({ graph, registry, center, onAddNode }: PaletteProps) =>
   };
 
   return (
-    <div className="palette" aria-label="Palette">
+    <div className="palette" aria-label="节点库">
       <div className="palette-header">
         <div>
-          <div className="palette-title">Palette</div>
-          <div className="palette-subtitle">{items.length} node types</div>
+          <div className="palette-title">节点库</div>
+          <div className="palette-subtitle">{items.length} 种节点</div>
         </div>
         <input
           className="palette-search"
           type="text"
-          placeholder="Search nodes..."
+          placeholder="搜索节点..."
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />

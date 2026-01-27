@@ -8,7 +8,8 @@ export type Command =
   | { type: "SET_CONTRACT"; contract: Graph["contract"] }
   | { type: "SET_PRESETS"; presets: Graph["presets"] }
   | { type: "CONNECT"; edge: Graph["edges"][number] }
-  | { type: "DISCONNECT"; edgeId: string };
+  | { type: "DISCONNECT"; edgeId: string }
+  | { type: "APPLY_JSON"; graph: Graph };
 
 export const applyCommand = (graph: Graph, command: Command): Graph => {
   switch (command.type) {
@@ -50,6 +51,8 @@ export const applyCommand = (graph: Graph, command: Command): Graph => {
       return { ...graph, edges: [...graph.edges, command.edge] };
     case "DISCONNECT":
       return { ...graph, edges: graph.edges.filter((edge) => edge.id !== command.edgeId) };
+    case "APPLY_JSON":
+      return command.graph;
     default: {
       const _exhaustive: never = command;
       return graph;

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { NodeEditor, type BaseSchemes } from "rete";
-import { AreaExtensions, AreaPlugin } from "rete-area-plugin";
+import { AreaExtensions, AreaPlugin, Drag } from "rete-area-plugin";
 import { ReactPlugin, Presets } from "rete-react-plugin";
 import { ClassicFlow, ConnectionPlugin, getSourceTarget } from "rete-connection-plugin";
 import { createRoot } from "react-dom/client";
@@ -112,6 +112,9 @@ export const ReteCanvas = ({
     const area = new AreaPlugin<Schemes>(containerRef.current);
     const reactRender = new ReactPlugin<Schemes>({ createRoot });
     const connection = new ConnectionPlugin<Schemes>();
+    const dragHandler = new Drag({
+      down: (event) => event.button === 0 && isBackgroundPointer(event),
+    });
 
     connection.addPreset(
       () =>
@@ -161,6 +164,7 @@ export const ReteCanvas = ({
     editor.use(area);
     area.use(reactRender);
     area.use(connection);
+    area.area.setDragHandler(dragHandler);
     selectableRef.current = AreaExtensions.selectableNodes(area, selectorRef.current, {
       accumulating: {
         active: (event: PointerEvent) => isMultiSelectModifier(event),

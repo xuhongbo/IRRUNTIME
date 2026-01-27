@@ -22,7 +22,7 @@ describe("inspectorUtils", () => {
   it("groups node and pin errors", () => {
     const errors = [
       { nodeId: "show", message: "Node error" },
-      { nodeId: "show", pinKey: "text", message: "Pin error" },
+      { nodeId: "show", pinId: "text", message: "Pin error" },
       { nodeId: "start", message: "Other node" },
     ];
     const grouped = groupNodeErrors(errors, "show");
@@ -33,8 +33,8 @@ describe("inspectorUtils", () => {
 
   it("builds pin status with connection counts and errors", () => {
     const errors = [
-      { nodeId: "show", pinKey: "text", message: "Missing text" },
-      { nodeId: "show", pinKey: "in", message: "Missing exec" },
+      { nodeId: "show", pinId: "text", message: "Missing text" },
+      { nodeId: "show", pinId: "in", message: "Missing exec" },
     ];
     const grouped = groupNodeErrors(errors, "show");
     const status = getNodePinStatus(baseGraph, "show", registry, grouped.pinErrors);

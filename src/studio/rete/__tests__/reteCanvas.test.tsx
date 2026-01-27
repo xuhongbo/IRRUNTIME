@@ -57,6 +57,7 @@ jest.mock("rete-area-plugin", () => {
   class AreaPlugin {
     nodeViews = new Map<string, { position: { x: number; y: number } }>();
     update = jest.fn();
+    area = { setDragHandler: jest.fn() };
     constructor() {
       lastArea = this;
       return this;
@@ -76,8 +77,14 @@ jest.mock("rete-area-plugin", () => {
       return;
     }
   }
+  class Drag {
+    constructor() {
+      return this;
+    }
+  }
   return {
     AreaPlugin,
+    Drag,
     AreaExtensions: {
       selectableNodes: (_: unknown, __: unknown, options?: { accumulating?: { active: (event: PointerEvent) => boolean } }) => {
         lastSelectableOptions = options ?? null;

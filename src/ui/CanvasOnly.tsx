@@ -43,13 +43,13 @@ export const CanvasOnly = ({
     <div className="canvas-only-root" data-testid="canvas-only-root">
       <header className="canvas-only-header">
         <div>
-          <div className="canvas-only-title">Canvas</div>
+          <div className="canvas-only-title">画布</div>
           <div className="canvas-only-subtitle">{graph.id}</div>
         </div>
         <div className="canvas-only-actions">
           {onBackToStudio && (
             <button className="button" onClick={onBackToStudio}>
-              Back to Studio
+              返回工作区
             </button>
           )}
         </div>

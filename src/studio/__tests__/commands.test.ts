@@ -94,6 +94,19 @@ describe("applyCommand", () => {
     expect(next.presets?.length).toBe(1);
   });
 
+  it("applies JSON graph replacement", () => {
+    const nextGraph: Graph = {
+      id: "next",
+      version: 2,
+      entryNodeId: "end",
+      nodes: [{ id: "end", type: "End", version: 1, props: {}, pos }],
+      edges: [],
+    };
+    const next = applyCommand(baseGraph, { type: "APPLY_JSON", graph: nextGraph });
+    expect(next).toBe(nextGraph);
+    expect(next.id).toBe("next");
+  });
+
   it("returns graph on unknown command", () => {
     const next = applyCommand(baseGraph, { type: "UNKNOWN" } as unknown as never);
     expect(next).toBe(baseGraph);

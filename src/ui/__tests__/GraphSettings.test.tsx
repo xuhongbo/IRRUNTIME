@@ -6,7 +6,7 @@ const contract = {
   inputs: [{ name: "count", type: "number" as const }],
   outputs: [{ name: "result", type: "string" as const }],
 };
-const presets = [{ id: "p1", title: "Preset", inputs: {} }];
+const presets = [{ id: "p1", title: "预设", inputs: {} }];
 
 describe("GraphSettings", () => {
   it("applies contract updates", () => {
@@ -21,9 +21,9 @@ describe("GraphSettings", () => {
         onApplyPresets={() => null}
       />
     );
-    const nameInputs = getAllByPlaceholderText("name");
+    const nameInputs = getAllByPlaceholderText("名称");
     fireEvent.change(nameInputs[0], { target: { value: "total" } });
-    fireEvent.click(getByText("Apply Contract"));
+    fireEvent.click(getByText("应用合约"));
     expect(onApplyContract).toHaveBeenCalled();
     const next = onApplyContract.mock.calls[0][0];
     expect(next.inputs[0].name).toBe("total");
@@ -41,9 +41,9 @@ describe("GraphSettings", () => {
         onApplyPresets={() => null}
       />
     );
-    const examples = getAllByPlaceholderText("examples (json array)")[0];
+    const examples = getAllByPlaceholderText("示例（JSON 数组）")[0];
     fireEvent.change(examples, { target: { value: "[1,2]" } });
-    fireEvent.click(getByText("Apply Contract"));
+    fireEvent.click(getByText("应用合约"));
     const next = onApplyContract.mock.calls[0][0];
     expect(next.inputs[0].examples).toEqual([1, 2]);
   });
@@ -60,9 +60,9 @@ describe("GraphSettings", () => {
         onApplyPresets={() => null}
       />
     );
-    const input = getByPlaceholderText("number");
+    const input = getByPlaceholderText("数字");
     fireEvent.change(input, { target: { value: "42" } });
-    fireEvent.click(getByText("Apply Inputs"));
+    fireEvent.click(getByText("应用输入"));
     expect(onChangeInputs).toHaveBeenCalledWith({ count: 42 });
   });
 
@@ -78,7 +78,7 @@ describe("GraphSettings", () => {
         onApplyPresets={onApplyPresets}
       />
     );
-    fireEvent.click(getByText("Apply Presets"));
+    fireEvent.click(getByText("应用预设"));
     expect(onApplyPresets).toHaveBeenCalled();
   });
 
@@ -98,8 +98,8 @@ describe("GraphSettings", () => {
     fireEvent.change(getByTestId("contract-input-examples-0"), { target: { value: "{}" } });
     fireEvent.click(getByTestId("contract-apply"));
     expect(onApplyContract).not.toHaveBeenCalled();
-    expect(getByTestId("contract-input-error-default-0")).toHaveTextContent("Default JSON invalid");
-    expect(getByTestId("contract-input-error-examples-0")).toHaveTextContent("Examples must be JSON array");
+    expect(getByTestId("contract-input-error-default-0")).toHaveTextContent("默认值 JSON 无效");
+    expect(getByTestId("contract-input-error-examples-0")).toHaveTextContent("示例必须为 JSON 数组");
   });
 
   it("shows graph input parse errors", () => {
@@ -117,7 +117,7 @@ describe("GraphSettings", () => {
     fireEvent.change(getByTestId("graph-input-payload"), { target: { value: "{ bad json" } });
     fireEvent.click(getByTestId("graph-inputs-apply"));
     expect(onChangeInputs).not.toHaveBeenCalled();
-    expect(getByTestId("graph-input-error-payload")).toHaveTextContent("JSON parse error");
+    expect(getByTestId("graph-input-error-payload")).toHaveTextContent("JSON 解析错误");
   });
 
   it("shows preset JSON errors", () => {
@@ -135,6 +135,6 @@ describe("GraphSettings", () => {
     fireEvent.change(getByTestId("preset-inputs-0"), { target: { value: "[]" } });
     fireEvent.click(getByTestId("preset-apply"));
     expect(onApplyPresets).not.toHaveBeenCalled();
-    expect(getByTestId("preset-error-0")).toHaveTextContent("Preset inputs must be JSON object");
+    expect(getByTestId("preset-error-0")).toHaveTextContent("预设输入必须为 JSON 对象");
   });
 });

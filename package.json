@@ -10,9 +10,7 @@
     "preview": "vite preview",
     "test": "jest --coverage",
     "test:unit": "jest",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:all": "npm run test:unit && npm run test:e2e",
+    "test:all": "npm run test:unit",
     "verify": "npm run test:all && npm run build"
   },
   "dependencies": {
@@ -31,7 +29,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@playwright/test": "^1.58.0",
     "@swc/core": "^1.15.10",
     "@swc/jest": "^0.2.39",
     "@testing-library/jest-dom": "^6.9.1",

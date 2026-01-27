@@ -53,9 +53,9 @@ describe("contract helpers", () => {
 
   it("handles empty names and non-string props", () => {
     const pins = buildGraphInputPins(baseGraph, "");
-    expect(pins[0].label).toBe("Input");
+    expect(pins[0].label).toBe("输入");
     const outputPins = buildGraphOutputPins(baseGraph, "");
-    expect(outputPins[1].label).toBe("Output");
+    expect(outputPins[1].label).toBe("输出");
     const weirdNode = { ...baseGraph.nodes[1], props: { name: 123 } };
     const resolved = resolveNodeDefinition(weirdNode, baseGraph, registry);
     expect(resolved?.outputs[0].dataType).toBe("json");

@@ -24,6 +24,12 @@
   font-size: 13px;
 }
 
+.graph-hint {
+  margin-top: 4px;
+  color: var(--ink-500);
+  font-size: 12px;
+}
+
 .graph-meta {
   font-size: 12px;
   color: var(--ink-500);
@@ -40,4 +46,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.graph-viewer .rete-canvas {
+  height: 520px;
 }

@@ -1,4 +1,5 @@
 import type { Graph } from "../../engine/ir";
+import { registry } from "../../engine/registry";
 import { autoLayoutGraph, getGraphCenter } from "../layout";
 
 describe("getGraphCenter", () => {
@@ -39,7 +40,7 @@ describe("getGraphCenter", () => {
       ],
       edges: [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "next", pinKey: "in" } }],
     };
-    const commands = autoLayoutGraph(graph, 100, 50);
+    const commands = autoLayoutGraph(graph, registry, 100, 50);
     expect(commands.length).toBe(3);
     const target = commands.find((cmd) => cmd.nodeId === "next");
     expect(target?.pos.x).toBe(100);
@@ -55,7 +56,7 @@ describe("getGraphCenter", () => {
       nodes: [],
       edges: [],
     };
-    const commands = autoLayoutGraph(graph);
+    const commands = autoLayoutGraph(graph, registry);
     expect(commands.length).toBe(0);
   });
 });

@@ -25,12 +25,12 @@ export const Runner = ({
   if (!viewModel) {
     return (
       <div className="runner empty" data-testid="runner-root">
-        <div className="runner-title">Runner</div>
-        <div className="runner-body">No active view model. Status: {status}</div>
+        <div className="runner-title">运行面板</div>
+        <div className="runner-body">暂无运行视图。状态：{status}</div>
         {presets && presets.length > 0 && (
           <div className="runner-presets">
             <label>
-              Preset
+              预设
               <select
                 value={selectedPresetId ?? presets[0]?.id}
                 onChange={(event) => onSelectPreset?.(event.target.value)}
@@ -46,7 +46,7 @@ export const Runner = ({
         )}
         {outputs && Object.keys(outputs).length > 0 && (
           <div className="runner-outputs">
-            <div className="runner-outputs-title">Outputs</div>
+            <div className="runner-outputs-title">输出</div>
             <pre>{JSON.stringify(outputs, null, 2)}</pre>
           </div>
         )}
@@ -75,17 +75,17 @@ export const Runner = ({
       {viewModel.kind === "text" && (
         <div className="runner-actions">
           <button className="button primary" onClick={onNext} data-testid="runner-next">
-            Next
+            下一步
           </button>
         </div>
       )}
-      {viewModel.kind === "waiting" && <div className="runner-hint">Waiting for async completion...</div>}
-      {viewModel.kind === "error" && <div className="runner-hint error">Execution halted.</div>}
-      {viewModel.kind === "done" && <div className="runner-hint">Workflow completed.</div>}
+      {viewModel.kind === "waiting" && <div className="runner-hint">等待异步完成...</div>}
+      {viewModel.kind === "error" && <div className="runner-hint error">执行已中止。</div>}
+      {viewModel.kind === "done" && <div className="runner-hint">流程已完成。</div>}
       {presets && presets.length > 0 && (
         <div className="runner-presets">
           <label>
-            Preset
+            预设
             <select
               value={selectedPresetId ?? presets[0]?.id}
               onChange={(event) => onSelectPreset?.(event.target.value)}
@@ -101,7 +101,7 @@ export const Runner = ({
       )}
       {outputs && Object.keys(outputs).length > 0 && (
         <div className="runner-outputs">
-          <div className="runner-outputs-title">Outputs</div>
+          <div className="runner-outputs-title">输出</div>
           <pre>{JSON.stringify(outputs, null, 2)}</pre>
         </div>
       )}
