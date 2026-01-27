@@ -14,6 +14,7 @@ type CanvasOnlyProps = {
   validationErrors: ValidationError[];
   runningNodeId: string | null;
   breakpoints: string[];
+  selectedNodeIds?: string[];
   suppressDrag?: boolean;
   snapToGrid?: boolean;
   onSelectNode: (nodeId: string | null) => void;
@@ -30,6 +31,7 @@ export const CanvasOnly = ({
   validationErrors,
   runningNodeId,
   breakpoints,
+  selectedNodeIds,
   suppressDrag,
   snapToGrid,
   onSelectNode,
@@ -53,10 +55,11 @@ export const CanvasOnly = ({
         </div>
       </header>
       <div className="canvas-only-body">
-        <ReteCanvas
-          graph={graph}
-          registry={registry}
-          selectedNodeId={selectedNodeId}
+      <ReteCanvas
+        graph={graph}
+        registry={registry}
+        selectedNodeId={selectedNodeId}
+        selectedNodeIds={selectedNodeIds}
           focusedPin={focusedPin}
           validationErrors={validationErrors}
           runningNodeId={runningNodeId}

@@ -5,6 +5,8 @@ export type ClipboardPayload = {
   edges: Graph["edges"][number][];
 };
 
+export const defaultPasteOffset = { x: 24, y: 24 };
+
 export const copySelection = (graph: Graph, nodeIds: string[]): ClipboardPayload | null => {
   if (nodeIds.length === 0) return null;
   const nodeSet = new Set(nodeIds);
@@ -40,6 +42,16 @@ export const pasteSelection = (
     };
   });
   return { nodes, edges };
+};
+
+export const duplicateSelection = (
+  graph: Graph,
+  nodeIds: string[],
+  offset: { x: number; y: number } = defaultPasteOffset
+) => {
+  const payload = copySelection(graph, nodeIds);
+  if (!payload) return null;
+  return pasteSelection(payload, offset);
 };
 
 export const getSelectionBounds = (nodes: Graph["nodes"][number][]) => {

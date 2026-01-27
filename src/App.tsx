@@ -24,7 +24,7 @@ import {
   redoHistory,
   undoHistory,
 } from "./studio/history";
-import { copySelection, pasteSelection } from "./studio/clipboard";
+import { copySelection, defaultPasteOffset, duplicateSelection, pasteSelection } from "./studio/clipboard";
 import { alignNodes, distributeNodes } from "./studio/align";
 import { lintGraph } from "./studio/lint";
 import { LintPanel } from "./ui/LintPanel";
@@ -273,6 +273,29 @@ const StudioApp = () => {
     return [
       ...addActions,
       {
+        id: "duplicate-selection",
+        title: "Duplicate Selection",
+        run: () => {
+          const duplicated = duplicateSelection(graphRef.current, selectedNodeIds);
+          if (!duplicated) return;
+          let next = graphRef.current;
+          pendingHistoryRef.current = true;
+          for (const node of duplicated.nodes) {
+            const command = { type: "ADD_NODE", node } as const;
+            next = applyCommand(next, command);
+            sync.sendCommand(command);
+          }
+          for (const edge of duplicated.edges) {
+            const command = { type: "CONNECT", edge } as const;
+            next = applyCommand(next, command);
+            sync.sendCommand(command);
+          }
+          updateGraph(next);
+          setSelectedNodeIds(duplicated.nodes.map((node) => node.id));
+          send({ type: "SELECT_NODE", nodeId: duplicated.nodes[0]?.id ?? null });
+        },
+      },
+      {
         id: "auto-layout",
         title: "Auto Layout",
         run: () => applyCommands(autoLayoutGraph(graphRef.current)),
@@ -323,10 +346,19 @@ const StudioApp = () => {
     updateGraph(result.graph);
   };
 
+  const isEditableTarget = (target: EventTarget | null) => {
+    const el = target as HTMLElement | null;
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    const tag = el.tagName?.toLowerCase();
+    return tag === "input" || tag === "textarea" || tag === "select";
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const isMac = window.navigator.platform.toLowerCase().includes("mac");
       const mod = isMac ? event.metaKey : event.ctrlKey;
+      if (isEditableTarget(event.target)) return;
       if (mod && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setPaletteOpen(true);
@@ -338,9 +370,17 @@ const StudioApp = () => {
         focusNextError();
         return;
       }
+      if (mod && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        const allIds = graphRef.current.nodes.map((node) => node.id);
+        setSelectedNodeIds(allIds);
+        send({ type: "SELECT_NODE", nodeId: allIds[0] ?? null });
+        return;
+      }
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
         if (selectedNodeIds.length === 0) return;
-        const step = event.shiftKey ? 50 : 10;
+        const baseStep = snapToGrid ? 20 : 10;
+        const step = event.shiftKey ? baseStep * 5 : baseStep;
         const offset = {
           x: event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0,
           y: event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0,
@@ -376,7 +416,7 @@ const StudioApp = () => {
         event.preventDefault();
         if (!clipboardRef.current) return;
         const payload = clipboardRef.current;
-        const pasted = pasteSelection(payload, { x: 24, y: 24 });
+        const pasted = pasteSelection(payload, defaultPasteOffset);
         let next = graphRef.current;
         pendingHistoryRef.current = true;
         for (const node of pasted.nodes) {
@@ -392,6 +432,27 @@ const StudioApp = () => {
         updateGraph(next);
         setSelectedNodeIds(pasted.nodes.map((node) => node.id));
         send({ type: "SELECT_NODE", nodeId: pasted.nodes[0]?.id ?? null });
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        const duplicated = duplicateSelection(graphRef.current, selectedNodeIds);
+        if (!duplicated) return;
+        let next = graphRef.current;
+        pendingHistoryRef.current = true;
+        for (const node of duplicated.nodes) {
+          const command = { type: "ADD_NODE", node } as const;
+          next = applyCommand(next, command);
+          sync.sendCommand(command);
+        }
+        for (const edge of duplicated.edges) {
+          const command = { type: "CONNECT", edge } as const;
+          next = applyCommand(next, command);
+          sync.sendCommand(command);
+        }
+        updateGraph(next);
+        setSelectedNodeIds(duplicated.nodes.map((node) => node.id));
+        send({ type: "SELECT_NODE", nodeId: duplicated.nodes[0]?.id ?? null });
         return;
       }
       if (!mod) return;
@@ -510,6 +571,7 @@ const StudioApp = () => {
               graph={graph}
               registry={registry}
               selectedNodeId={state.context.selectedNodeId}
+              selectedNodeIds={selectedNodeIds}
               focusedPin={state.context.focusedPin}
               validationErrors={state.context.validationErrors}
               runningNodeId={snapshot.currentNodeId}
@@ -643,6 +705,7 @@ const CanvasOnlyApp = () => {
   const graph = state.context.graph;
   const graphRef = useRef(graph);
   const [isRemoteSyncing, setIsRemoteSyncing] = useState(false);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
 
   useEffect(() => {
     graphRef.current = graph;
@@ -677,13 +740,21 @@ const CanvasOnlyApp = () => {
       graph={graph}
       registry={registry}
       selectedNodeId={state.context.selectedNodeId}
+      selectedNodeIds={selectedNodeIds}
       focusedPin={state.context.focusedPin}
       validationErrors={state.context.validationErrors}
       runningNodeId={null}
       breakpoints={[]}
       suppressDrag={isRemoteSyncing}
       snapToGrid
-      onSelectNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
+      onSelectNode={(nodeId) => {
+        send({ type: "SELECT_NODE", nodeId });
+        setSelectedNodeIds(nodeId ? [nodeId] : []);
+      }}
+      onSelectNodes={(nodeIds) => {
+        setSelectedNodeIds(nodeIds);
+        send({ type: "SELECT_NODE", nodeId: nodeIds[0] ?? null });
+      }}
       onCommand={handleCommand}
       onBackToStudio={() => {
         if (typeof window === "undefined") return;

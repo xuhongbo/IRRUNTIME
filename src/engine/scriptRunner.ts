@@ -3,6 +3,32 @@ export type ScriptRunResult = {
   logs: string[];
 };
 
+export type ScriptBudget = {
+  timeoutMs: number;
+  maxOutputSize: number;
+  maxLogEntries: number;
+  maxLogChars: number;
+};
+
+const defaultBudget: ScriptBudget = {
+  timeoutMs: 500,
+  maxOutputSize: 20000,
+  maxLogEntries: 50,
+  maxLogChars: 500,
+};
+
+const createLogCollector = (budget: ScriptBudget) => {
+  const logs: string[] = [];
+  const push = (value: string) => {
+    if (logs.length >= budget.maxLogEntries) {
+      return;
+    }
+    const trimmed = value.length > budget.maxLogChars ? value.slice(0, budget.maxLogChars) : value;
+    logs.push(trimmed);
+  };
+  return { logs, push };
+};
+
 const ensureSerializable = (value: unknown, seen = new Set<unknown>()) => {
   const valueType = typeof value;
   if (valueType === "function" || valueType === "symbol" || valueType === "undefined") {
@@ -72,17 +98,34 @@ export const runScriptInWorker = ({
   code,
   inputs,
   context,
-  timeoutMs,
+  timeoutMs = defaultBudget.timeoutMs,
   seed,
+  maxOutputSize = defaultBudget.maxOutputSize,
+  maxLogEntries = defaultBudget.maxLogEntries,
+  maxLogChars = defaultBudget.maxLogChars,
 }: {
   code: string;
   inputs: Record<string, unknown>;
   context: Record<string, unknown>;
-  timeoutMs: number;
+  timeoutMs?: number;
   seed: number;
+  maxOutputSize?: number;
+  maxLogEntries?: number;
+  maxLogChars?: number;
 }): Promise<ScriptRunResult> => {
   if (typeof Worker === "undefined") {
-    return Promise.resolve(runScriptInSandbox({ code, inputs, context, timeoutMs, seed }));
+    return Promise.resolve(
+      runScriptInSandbox({
+        code,
+        inputs,
+        context,
+        timeoutMs,
+        seed,
+        maxOutputSize,
+        maxLogEntries,
+        maxLogChars,
+      })
+    );
   }
   /* istanbul ignore next */
   const workerCode = `
@@ -123,15 +166,19 @@ export const runScriptInWorker = ({
     self.WebSocket = undefined;
     self.XMLHttpRequest = undefined;
     self.onmessage = (event) => {
-      const { code, inputs, context, seed } = event.data;
+      const { code, inputs, context, seed, budget } = event.data;
       const logs = [];
       const rand = createSeededRandom(seed);
       const safeMath = createSafeMath(rand);
       const SafeDate = createSafeDate();
       const safeConsole = createSafeConsole(logs);
+      const pushLog = (value) => {
+        if (logs.length >= budget.maxLogEntries) return;
+        logs.push(String(value).slice(0, budget.maxLogChars));
+      };
       const utils = {
         log: (...args) => {
-          logs.push(args.map((item) => typeof item === "string" ? item : JSON.stringify(item)).join(" "));
+          pushLog(args.map((item) => typeof item === "string" ? item : JSON.stringify(item)).join(" "));
         },
         random: () => rand(),
         now: () => 0
@@ -179,6 +226,10 @@ export const runScriptInWorker = ({
           Object.values(value).forEach((item) => ensureSerializable(item));
         };
         ensureSerializable(result);
+        const outputJson = JSON.stringify(result);
+        if (outputJson && outputJson.length > budget.maxOutputSize) {
+          throw new Error("Output too large");
+        }
       } catch (err) {
         self.postMessage({ ok: false, error: "Output not serializable", logs });
         return;
@@ -218,7 +269,13 @@ export const runScriptInWorker = ({
       reject(new Error("Script error"));
     };
 
-    worker.postMessage({ code, inputs, context, seed });
+    worker.postMessage({
+      code,
+      inputs,
+      context,
+      seed,
+      budget: { maxOutputSize, maxLogEntries, maxLogChars },
+    });
   });
 };
 
@@ -226,27 +283,43 @@ export const runScriptInSandbox = ({
   code,
   inputs,
   context,
-  timeoutMs,
+  timeoutMs = defaultBudget.timeoutMs,
   seed,
+  maxOutputSize = defaultBudget.maxOutputSize,
+  maxLogEntries = defaultBudget.maxLogEntries,
+  maxLogChars = defaultBudget.maxLogChars,
 }: {
   code: string;
   inputs: Record<string, unknown>;
   context: Record<string, unknown>;
-  timeoutMs: number;
+  timeoutMs?: number;
   seed: number;
+  maxOutputSize?: number;
+  maxLogEntries?: number;
+  maxLogChars?: number;
 }) => {
-  const logs: string[] = [];
+  const budget: ScriptBudget = {
+    timeoutMs,
+    maxOutputSize,
+    maxLogEntries,
+    maxLogChars,
+  };
+  const { logs, push } = createLogCollector(budget);
   const random = createSeededRandom(seed);
   const safeMath = createSafeMath(random);
   const SafeDate = createSafeDate();
   const utils = {
     log: (...args: unknown[]) => {
-      logs.push(args.map((item) => String(item)).join(" "));
+      push(args.map((item) => String(item)).join(" "));
     },
     random: () => random(),
     now: () => 0,
   };
-  const safeConsole = createSafeConsole(logs);
+  const safeConsole = {
+    log: (...args: unknown[]) => push(args.map((item) => String(item)).join(" ")),
+    warn: (...args: unknown[]) => push(args.map((item) => String(item)).join(" ")),
+    error: (...args: unknown[]) => push(args.map((item) => String(item)).join(" ")),
+  };
   const start = performance.now();
   const fn = new Function(
     "inputs",
@@ -265,6 +338,10 @@ export const runScriptInSandbox = ({
     throw new Error("Script timeout");
   }
   ensureSerializable(result);
+  const outputJson = JSON.stringify(result);
+  if (outputJson && outputJson.length > budget.maxOutputSize) {
+    throw new Error("Output too large");
+  }
   return {
     data: typeof result === "object" && result !== null ? result : { value: result },
     logs,

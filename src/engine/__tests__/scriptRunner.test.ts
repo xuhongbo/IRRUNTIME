@@ -66,6 +66,32 @@ describe("scriptRunner", () => {
     expect(result.logs).toEqual(["a", "b", "c"]);
   });
 
+  it("limits log entries and size", () => {
+    const result = runScriptInSandbox({
+      code: "utils.log('a'.repeat(10)); utils.log('b'); utils.log('c'); return { ok: true };",
+      inputs: {},
+      context: {},
+      timeoutMs: 500,
+      seed: 1,
+      maxLogEntries: 2,
+      maxLogChars: 5,
+    });
+    expect(result.logs).toEqual(["aaaaa", "b"]);
+  });
+
+  it("rejects oversized output", () => {
+    expect(() =>
+      runScriptInSandbox({
+        code: "return { text: 'x'.repeat(100) };",
+        inputs: {},
+        context: {},
+        timeoutMs: 500,
+        seed: 1,
+        maxOutputSize: 50,
+      })
+    ).toThrow("Output too large");
+  });
+
   it("rejects non-serializable output", () => {
     expect(() =>
       runScriptInSandbox({

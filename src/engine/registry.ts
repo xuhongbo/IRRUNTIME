@@ -185,22 +185,40 @@ const scriptNode: NodeDefinition = {
     .object({
       code: z.string().default("return { output: inputs.input };"),
       timeoutMs: z.number().min(10).max(10000).default(500),
+      maxOutputSize: z.number().min(1000).max(200000).default(20000),
+      maxLogEntries: z.number().min(1).max(200).default(50),
+      maxLogChars: z.number().min(50).max(2000).default(500),
     })
     .strict(),
-  defaultProps: { code: "return { output: inputs.input };", timeoutMs: 500 },
+  defaultProps: {
+    code: "return { output: inputs.input };",
+    timeoutMs: 500,
+    maxOutputSize: 20000,
+    maxLogEntries: 50,
+    maxLogChars: 500,
+  },
   form: [
     { key: "code", label: "Code", type: "textarea" },
     { key: "timeoutMs", label: "Timeout (ms)", type: "number" },
+    { key: "maxOutputSize", label: "Max Output (chars)", type: "number" },
+    { key: "maxLogEntries", label: "Max Logs", type: "number" },
+    { key: "maxLogChars", label: "Max Log Size", type: "number" },
   ],
   run: (ctx) => {
     const code = String(ctx.props.code ?? "");
     const timeoutMs = Number(ctx.props.timeoutMs ?? 500);
+    const maxOutputSize = Number(ctx.props.maxOutputSize ?? 20000);
+    const maxLogEntries = Number(ctx.props.maxLogEntries ?? 50);
+    const maxLogChars = Number(ctx.props.maxLogChars ?? 500);
     const context = { vars: ctx.vars, graphId: ctx.graph.id };
     const deferred = runScriptInWorker({
       code,
       inputs: { input: ctx.inputs.input },
       context,
       timeoutMs,
+      maxOutputSize,
+      maxLogEntries,
+      maxLogChars,
       seed: 0,
     }).then((result) => ({
       data: { output: result.data.output ?? result.data },

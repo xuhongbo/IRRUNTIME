@@ -23,6 +23,7 @@ export type ReteCanvasProps = {
   validationErrors: ValidationError[];
   runningNodeId: string | null;
   breakpoints: string[];
+  selectedNodeIds?: string[];
   suppressDrag?: boolean;
   snapToGrid?: boolean;
   gridSize?: number;
@@ -39,6 +40,7 @@ export const ReteCanvas = ({
   graph,
   registry,
   selectedNodeId,
+  selectedNodeIds = [],
   focusedPin,
   validationErrors,
   runningNodeId,
@@ -56,6 +58,7 @@ export const ReteCanvas = ({
   const nodesRef = useRef<Map<string, ClassicPreset.Node<ReteNodeData>>>(new Map());
   const syncingRef = useRef(false);
   const syncingConnectionsRef = useRef(false);
+  const selectableRef = useRef<ReturnType<typeof AreaExtensions.selectableNodes> | null>(null);
   const suppressDragRef = useRef(suppressDrag);
   const dragLockRef = useRef<Map<string, number>>(new Map());
   const dragLockMsRef = useRef(120);
@@ -158,8 +161,11 @@ export const ReteCanvas = ({
     editor.use(area);
     area.use(reactRender);
     area.use(connection);
-    AreaExtensions.selectableNodes(area, selectorRef.current, {
-      accumulating: AreaExtensions.accumulateOnCtrl(),
+    selectableRef.current = AreaExtensions.selectableNodes(area, selectorRef.current, {
+      accumulating: {
+        active: (event: PointerEvent) => isMultiSelectModifier(event),
+        destroy: () => undefined,
+      },
     });
 
     const notifySelection = () => {
@@ -177,6 +183,16 @@ export const ReteCanvas = ({
       if (suppressDragRef.current && context.type === "nodedragged") {
         debugLog("rete:pipe:skip", { type: context.type, reason: "suppressDrag" });
         return context;
+      }
+      if (context.type === "pointerdown") {
+        const event = context.data.event;
+        if (event.button === 0 && isBackgroundPointer(event)) {
+          onSelectNode(null);
+          onSelectNodes?.([]);
+          if (typeof selectorRef.current.unselectAll === "function") {
+            void selectorRef.current.unselectAll();
+          }
+        }
       }
       if (context.type === "nodepicked") {
         onSelectNode(context.data.id);
@@ -374,7 +390,41 @@ export const ReteCanvas = ({
     void syncConnections();
   }, [graph.edges, registry, reteData]);
 
+  useEffect(() => {
+    const selector = selectorRef.current;
+    const selectable = selectableRef.current;
+    if (!selector || !selectable) return;
+    if (!Array.isArray(selectedNodeIds)) return;
+    if (selectionMatches(selector.entities, selectedNodeIds)) return;
+    const syncSelection = async () => {
+      if (typeof selector.unselectAll === "function") {
+        await selector.unselectAll();
+      }
+      for (const [index, id] of selectedNodeIds.entries()) {
+        await selectable.select(id, index > 0);
+      }
+    };
+    void syncSelection();
+  }, [selectedNodeIds]);
+
   return <div className="rete-canvas" data-testid="canvas-root" ref={containerRef} />;
+};
+
+export const isMultiSelectModifier = (event: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }) =>
+  Boolean(event.ctrlKey || event.metaKey || event.shiftKey);
+
+export const isBackgroundPointer = (event: { target: EventTarget | null }) => {
+  const target = event.target as HTMLElement | null;
+  if (!target || typeof target.closest !== "function") return true;
+  return !target.closest(".rete-node");
+};
+
+export const selectionMatches = (entities: Map<string, unknown>, selectedNodeIds: string[]) => {
+  if (entities.size !== selectedNodeIds.length) return false;
+  for (const id of selectedNodeIds) {
+    if (!entities.has(id)) return false;
+  }
+  return true;
 };
 
 export const isDragLocked = (

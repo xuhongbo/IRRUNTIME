@@ -13,6 +13,7 @@ type GraphViewerProps = {
   validationErrors: ValidationError[];
   runningNodeId: string | null;
   breakpoints: string[];
+  selectedNodeIds?: string[];
   suppressDrag?: boolean;
   snapToGrid?: boolean;
   onToggleSnap?: () => void;
@@ -32,6 +33,7 @@ export const GraphViewer = ({
   validationErrors,
   runningNodeId,
   breakpoints,
+  selectedNodeIds,
   suppressDrag,
   snapToGrid,
   onToggleSnap,
@@ -89,6 +91,7 @@ export const GraphViewer = ({
         graph={graph}
         registry={registry}
         selectedNodeId={selectedNodeId}
+        selectedNodeIds={selectedNodeIds}
         focusedPin={focusedPin}
         validationErrors={validationErrors}
         runningNodeId={runningNodeId}

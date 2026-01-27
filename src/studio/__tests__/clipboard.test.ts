@@ -1,5 +1,11 @@
 import type { Graph } from "../../engine/ir";
-import { copySelection, pasteSelection, getSelectionBounds } from "../clipboard";
+import {
+  copySelection,
+  pasteSelection,
+  getSelectionBounds,
+  duplicateSelection,
+  defaultPasteOffset,
+} from "../clipboard";
 
 const graph: Graph = {
   id: "g",
@@ -52,5 +58,17 @@ describe("clipboard helpers", () => {
     };
     const pasted = pasteSelection(payload, { x: 0, y: 0 });
     expect(pasted.edges[0].from.nodeId).toBe("a");
+  });
+
+  it("duplicates selection with default offset", () => {
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(1000);
+    const duplicated = duplicateSelection(graph, ["a"]);
+    expect(duplicated?.nodes[0].pos.x).toBe(defaultPasteOffset.x);
+    expect(duplicated?.nodes[0].pos.y).toBe(defaultPasteOffset.y);
+    nowSpy.mockRestore();
+  });
+
+  it("returns null when duplicating empty selection", () => {
+    expect(duplicateSelection(graph, [])).toBeNull();
   });
 });

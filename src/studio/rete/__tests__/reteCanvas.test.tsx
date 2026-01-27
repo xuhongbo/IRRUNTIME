@@ -11,6 +11,8 @@ let lastEditor: {
   removeNode: jest.Mock;
 } | null = null;
 let lastFlowParams: { canMakeConnection?: (from: unknown, to: unknown) => boolean; makeConnection?: (from: unknown, to: unknown, context: { editor: { addConnection: (conn: unknown) => void } }) => boolean } | null = null;
+let lastSelectableOptions: { accumulating?: { active: (event: PointerEvent) => boolean } } | null = null;
+let lastSelectableNodes: { select: jest.Mock; unselect: jest.Mock } | null = null;
 
 jest.mock("rete", () => {
   class NodeEditor {
@@ -77,7 +79,14 @@ jest.mock("rete-area-plugin", () => {
   return {
     AreaPlugin,
     AreaExtensions: {
-      selectableNodes: () => ({ select: () => Promise.resolve(), unselect: () => Promise.resolve() }),
+      selectableNodes: (_: unknown, __: unknown, options?: { accumulating?: { active: (event: PointerEvent) => boolean } }) => {
+        lastSelectableOptions = options ?? null;
+        lastSelectableNodes = {
+          select: jest.fn().mockResolvedValue(undefined),
+          unselect: jest.fn().mockResolvedValue(undefined),
+        };
+        return lastSelectableNodes;
+      },
       selector: () => ({ entities: new Map(), unselectAll: () => Promise.resolve() }),
       accumulateOnCtrl: () => ({ active: () => false, destroy: () => undefined }),
     },
@@ -169,7 +178,15 @@ jest.mock("../mapping", () => {
   };
 });
 
-import { ReteCanvas, isDragLocked, pruneDragLocks, shouldSkipEditorPipe } from "../ReteCanvas";
+import {
+  ReteCanvas,
+  isBackgroundPointer,
+  isDragLocked,
+  isMultiSelectModifier,
+  pruneDragLocks,
+  selectionMatches,
+  shouldSkipEditorPipe,
+} from "../ReteCanvas";
 
 const graph: Graph = {
   id: "g",
@@ -231,6 +248,81 @@ describe("ReteCanvas", () => {
       />
     );
     expect(getByTestId("canvas-root")).toBeInTheDocument();
+  });
+
+  it("clears selection when clicking background", () => {
+    pipes.length = 0;
+    editorPipes.length = 0;
+    const onSelectNode = jest.fn();
+    const onSelectNodes = jest.fn();
+    render(
+      <ReteCanvas
+        graph={graph}
+        registry={registry}
+        selectedNodeId={"start"}
+        focusedPin={null}
+        validationErrors={[]}
+        runningNodeId={null}
+        breakpoints={[]}
+        onCommand={() => undefined}
+        onSelectNode={onSelectNode}
+        onSelectNodes={onSelectNodes}
+      />
+    );
+    const background = document.createElement("div");
+    pipes.forEach((pipe) =>
+      pipe({ type: "pointerdown", data: { event: { button: 0, target: background } } } as never)
+    );
+    expect(onSelectNode).toHaveBeenCalledWith(null);
+    expect(onSelectNodes).toHaveBeenCalledWith([]);
+  });
+
+  it("detects multi-select modifier", () => {
+    expect(isMultiSelectModifier({ ctrlKey: true })).toBe(true);
+    expect(isMultiSelectModifier({ shiftKey: true })).toBe(true);
+    expect(isMultiSelectModifier({ metaKey: true })).toBe(true);
+    expect(isMultiSelectModifier({})).toBe(false);
+  });
+
+  it("detects background pointer", () => {
+    const node = document.createElement("div");
+    node.className = "rete-node";
+    const child = document.createElement("span");
+    node.appendChild(child);
+    expect(isBackgroundPointer({ target: child })).toBe(false);
+    expect(isBackgroundPointer({ target: document.createElement("div") })).toBe(true);
+  });
+
+  it("syncs selected node ids", async () => {
+    pipes.length = 0;
+    editorPipes.length = 0;
+    lastSelectableNodes = null;
+    await render(
+      <ReteCanvas
+        graph={graphWithEnd}
+        registry={registry}
+        selectedNodeId={"start"}
+        selectedNodeIds={["start", "end"]}
+        focusedPin={null}
+        validationErrors={[]}
+        runningNodeId={null}
+        breakpoints={[]}
+        onCommand={() => undefined}
+        onSelectNode={() => undefined}
+      />
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(lastSelectableNodes?.select).toHaveBeenCalledWith("start", false);
+    expect(lastSelectableNodes?.select).toHaveBeenCalledWith("end", true);
+  });
+
+  it("checks selection match", () => {
+    const entities = new Map([
+      ["a", {}],
+      ["b", {}],
+    ]);
+    expect(selectionMatches(entities, ["a", "b"])).toBe(true);
+    expect(selectionMatches(entities, ["a"])).toBe(false);
   });
 
   it("dispatches selection and move commands from pipes", () => {

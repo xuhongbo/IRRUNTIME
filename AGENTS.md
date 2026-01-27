@@ -21,6 +21,11 @@ This Studio work is "DONE" only if we have evidence:
 
 A screenshot is NOT evidence. Tests + reports are evidence.
 
+Execution mode (must follow):
+- Continuous execution: do NOT stop after each milestone/phase to ask for confirmation.
+- Only stop when all requested tasks are complete or when blocked by an external dependency.
+- Intermediate progress may be logged, but do not pause the workflow.
+
 ---
 
 ## 1) Non-negotiables (Do not violate)
