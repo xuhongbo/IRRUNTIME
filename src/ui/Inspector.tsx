@@ -78,22 +78,6 @@ export const Inspector = ({
   const def = node ? registry.get(node.type, node.version) ?? registry.getLatest(node.type) : null;
   const [draftProps, setDraftProps] = useState<Record<string, unknown>>({});
   const [jsonErrors, setJsonErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (node) {
-      setDraftProps({ ...node.props });
-      setJsonErrors({});
-    }
-  }, [node]);
-
-  if (!node || !def) {
-    return (
-      <Box sx={{ p: 4, textAlign: "center", color: "text.secondary", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }} data-testid="inspector-root">
-        <Typography variant="body2">Select a node to inspect</Typography>
-      </Box>
-    );
-  }
-
   const resolvedForm = useMemo<FormFieldDef[]>(() => {
     if (!node) return def?.form ?? [];
     if (!def) return [];
@@ -121,6 +105,21 @@ export const Inspector = ({
       field.key === "name" ? { ...field, options } : field
     );
   }, [def, graph.contract, node]);
+
+  useEffect(() => {
+    if (node) {
+      setDraftProps({ ...node.props });
+      setJsonErrors({});
+    }
+  }, [node]);
+
+  if (!node || !def) {
+    return (
+      <Box sx={{ p: 4, textAlign: "center", color: "text.secondary", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }} data-testid="inspector-root">
+        <Typography variant="body2">Select a node to inspect</Typography>
+      </Box>
+    );
+  }
 
   const apply = () => {
     const errors: Record<string, string> = {};

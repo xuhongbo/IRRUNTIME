@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { NodeEditor, type BaseSchemes } from "rete";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { ClassicPreset, NodeEditor, type BaseSchemes } from "rete";
 import { AreaExtensions, AreaPlugin, Drag } from "rete-area-plugin";
 import { ReactPlugin, Presets } from "rete-react-plugin";
 import { ClassicFlow, ConnectionPlugin, getSourceTarget } from "rete-connection-plugin";
@@ -7,13 +7,90 @@ import { createRoot } from "react-dom/client";
 import type { Graph } from "../../engine/ir";
 import type { Registry } from "../../engine/registry";
 import type { Command } from "../commands";
-import { buildReteConnection, graphToRete, reteMoveCommand } from "./mapping";
+import { buildReteConnection, buildReteNode, reteMoveCommand } from "./mapping";
 import type { ValidationError } from "../../engine/validator";
 import { buildErrorMap } from "../errors";
 import { canConnectEndpoints, connectionToEdge } from "./connectionRules";
 import type { ReteNodeData } from "./types";
 import { NodeView } from "./nodes";
 import "./rete.css";
+import { resolveNodeDefinition } from "../../engine/contract";
+
+// --- Helpers ---
+
+export const isMultiSelectModifier = (event: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }) =>
+  Boolean(event.ctrlKey || event.metaKey || event.shiftKey);
+
+export const isBackgroundPointer = (event: { target: EventTarget | null }) => {
+  const target = event.target as HTMLElement | null;
+  if (!target || typeof target.closest !== "function") return true;
+  return !target.closest(".rete-node");
+};
+
+export const selectionMatches = (entities: Map<string, unknown>, selectedNodeIds: string[]) => {
+  if (entities.size !== selectedNodeIds.length) return false;
+  for (const id of selectedNodeIds) {
+    if (!entities.has(id)) return false;
+  }
+  return true;
+};
+
+export const isDragLocked = (
+  lockMap: Map<string, number>,
+  nodeId: string,
+  now: number,
+  lockMs: number
+) => {
+  const last = lockMap.get(nodeId);
+  if (last === undefined) return false;
+  return now - last < lockMs;
+};
+
+export const shouldSkipEditorPipe = (syncingConnections: boolean, syncing: boolean) => {
+  if (syncingConnections) return "syncingConnections";
+  if (syncing) return "syncing";
+  return null;
+};
+
+export const pruneDragLocks = (
+  lockMap: Map<string, number>,
+  now: number,
+  lockMs: number
+) => {
+  let removed = 0;
+  for (const [id, ts] of lockMap.entries()) {
+    if (now - ts > lockMs * 2) {
+      lockMap.delete(id);
+      removed += 1;
+    }
+  }
+  return removed;
+};
+
+const buildPinsSignature = (pins: { key: string; kind?: string; dataType?: string; label?: string }[]) =>
+  pins
+    .map((pin) => `${pin.key}:${pin.kind ?? ""}:${pin.dataType ?? ""}:${pin.label ?? ""}`)
+    .join("|");
+
+const buildNodeSignature = (
+  node: Graph["nodes"][number],
+  resolved: { def: { title?: string }; inputs: { key: string; kind?: string; dataType?: string; label?: string }[]; outputs: { key: string; kind?: string; dataType?: string; label?: string }[] }
+) => {
+  const inputsSig = buildPinsSignature(resolved.inputs);
+  const outputsSig = buildPinsSignature(resolved.outputs);
+  const title = resolved.def.title ?? node.type;
+  return `${node.type}@${node.version}:${title}:${inputsSig}::${outputsSig}`;
+};
+
+const useEvent = <T extends (...args: never[]) => void>(handler: T) => {
+  const handlerRef = useRef(handler);
+  useEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
+  return useCallback((...args: Parameters<T>) => handlerRef.current(...args), []);
+};
+
+// --- Component ---
 
 export type ReteCanvasProps = {
   graph: Graph;
@@ -63,9 +140,13 @@ export const ReteCanvas = ({
   const dragLockRef = useRef<Map<string, number>>(new Map());
   const dragLockMsRef = useRef(120);
   const graphRef = useRef(graph);
+  const registryRef = useRef(registry);
   const logRef = useRef({ init: false });
   const syncTokenRef = useRef(0);
   const selectorRef = useRef(AreaExtensions.selector());
+  const onCommandEvent = useEvent(onCommand);
+  const onSelectNodeEvent = useEvent(onSelectNode);
+  const onSelectNodesEvent = useEvent((nodeIds: string[]) => onSelectNodes?.(nodeIds));
 
   const debugLog = (label: string, data?: Record<string, unknown>) => {
     if (typeof window === "undefined") return;
@@ -75,22 +156,13 @@ export const ReteCanvas = ({
   };
 
   const errorMap = useMemo(() => buildErrorMap(validationErrors), [validationErrors]);
-  const reteData = useMemo(
-    () =>
-      graphToRete(
-        graph,
-        registry,
-        errorMap,
-        selectedNodeId && focusedPin ? focusedPin : null,
-        runningNodeId,
-        breakpoints
-      ),
-    [breakpoints, errorMap, focusedPin, graph, registry, runningNodeId, selectedNodeId]
-  );
-
   useEffect(() => {
     graphRef.current = graph;
   }, [graph]);
+
+  useEffect(() => {
+    registryRef.current = registry;
+  }, [registry]);
 
   useEffect(() => {
     suppressDragRef.current = suppressDrag;
@@ -102,6 +174,7 @@ export const ReteCanvas = ({
   useEffect(() => {
     if (!containerRef.current) return;
     if (editorRef.current) return;
+    containerRef.current.innerHTML = "";
 
     if (!logRef.current.init) {
       logRef.current.init = true;
@@ -112,8 +185,11 @@ export const ReteCanvas = ({
     const area = new AreaPlugin<Schemes>(containerRef.current);
     const reactRender = new ReactPlugin<Schemes>({ createRoot });
     const connection = new ConnectionPlugin<Schemes>();
+    
+    // Explicit Drag Handler
     const dragHandler = new Drag({
       down: (event) => event.button === 0 && isBackgroundPointer(event),
+      move: () => true,
     });
 
     connection.addPreset(
@@ -125,7 +201,7 @@ export const ReteCanvas = ({
             const [source, target] = pair;
             return canConnectEndpoints(
               graphRef.current,
-              registry,
+              registryRef.current,
               { nodeId: source.nodeId, pinKey: source.key, side: "output" },
               { nodeId: target.nodeId, pinKey: target.key, side: "input" }
             ).ok;
@@ -136,7 +212,7 @@ export const ReteCanvas = ({
             const [source, target] = pair;
             const decision = canConnectEndpoints(
               graphRef.current,
-              registry,
+              registryRef.current,
               { nodeId: source.nodeId, pinKey: source.key, side: "output" },
               { nodeId: target.nodeId, pinKey: target.key, side: "input" }
             );
@@ -165,17 +241,16 @@ export const ReteCanvas = ({
     area.use(reactRender);
     area.use(connection);
     area.area.setDragHandler(dragHandler);
+
+    // Extensions
+    AreaExtensions.simpleNodesOrder(area);
     selectableRef.current = AreaExtensions.selectableNodes(area, selectorRef.current, {
-      accumulating: {
-        active: (event: PointerEvent) => isMultiSelectModifier(event),
-        destroy: () => undefined,
-      },
+      accumulating: AreaExtensions.accumulateOnCtrl(),
     });
 
     const notifySelection = () => {
-      if (!onSelectNodes) return;
       const selected = Array.from(selectorRef.current.entities.keys());
-      onSelectNodes(selected);
+      onSelectNodesEvent(selected);
     };
 
     area.addPipe((context) => {
@@ -191,15 +266,15 @@ export const ReteCanvas = ({
       if (context.type === "pointerdown") {
         const event = context.data.event;
         if (event.button === 0 && isBackgroundPointer(event)) {
-          onSelectNode(null);
-          onSelectNodes?.([]);
+          onSelectNodeEvent(null);
+          onSelectNodesEvent([]);
           if (typeof selectorRef.current.unselectAll === "function") {
             void selectorRef.current.unselectAll();
           }
         }
       }
       if (context.type === "nodepicked") {
-        onSelectNode(context.data.id);
+        onSelectNodeEvent(context.data.id);
         notifySelection();
       }
       if (context.type === "pointerup") {
@@ -213,10 +288,10 @@ export const ReteCanvas = ({
           const targetIds = selectedIds.length > 0 ? selectedIds : [node.id];
           for (const id of targetIds) {
             dragLockRef.current.set(id, nowMs());
-            const view = area.nodeViews.get(id);
+              const view = area.nodeViews.get(id);
             if (view) {
               const pos = { x: snap(view.position.x), y: snap(view.position.y) };
-              onCommand(reteMoveCommand(id, pos));
+              onCommandEvent(reteMoveCommand(id, pos));
             }
           }
         }
@@ -245,14 +320,14 @@ export const ReteCanvas = ({
         if (hasEdge) {
           return context;
         }
-        onCommand({ type: "CONNECT", edge });
+        onCommandEvent({ type: "CONNECT", edge });
       }
       if (context.type === "connectionremoved") {
         const hasEdge = graphRef.current.edges.some((item) => item.id === context.data.id);
         if (!hasEdge) {
           return context;
         }
-        onCommand({ type: "DISCONNECT", edgeId: context.data.id });
+        onCommandEvent({ type: "DISCONNECT", edgeId: context.data.id });
       }
       return context;
     });
@@ -264,7 +339,7 @@ export const ReteCanvas = ({
       if (testEnabled) {
         (window as unknown as { __RETE_TEST_API__?: Record<string, unknown> }).__RETE_TEST_API__ = {
           connect: (from: { nodeId: string; pinKey: string }, to: { nodeId: string; pinKey: string }) => {
-            onCommand({
+            onCommandEvent({
               type: "CONNECT",
               edge: {
                 id: `${from.nodeId}-${from.pinKey}-${to.nodeId}-${to.pinKey}-${Date.now()}`,
@@ -274,10 +349,10 @@ export const ReteCanvas = ({
             });
           },
           move: (nodeId: string, pos: { x: number; y: number }) => {
-            onCommand(reteMoveCommand(nodeId, pos));
+            onCommandEvent(reteMoveCommand(nodeId, pos));
           },
           select: (nodeId: string) => {
-            onSelectNode(nodeId);
+            onSelectNodeEvent(nodeId);
           },
         };
       }
@@ -289,8 +364,11 @@ export const ReteCanvas = ({
       if (typeof (editor as unknown as { destroy?: () => void }).destroy === "function") {
         (editor as unknown as { destroy: () => void }).destroy();
       }
+      editorRef.current = null;
+      areaRef.current = null;
+      nodesRef.current.clear();
     };
-  }, [onCommand, onSelectNode, registry]);
+  }, [onCommandEvent, onSelectNodeEvent, onSelectNodesEvent]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -301,48 +379,88 @@ export const ReteCanvas = ({
     syncTokenRef.current = token;
 
     debugLog("rete:sync:start", {
-      nodes: reteData.nodes.size,
+      nodes: graph.nodes.length,
       edges: graph.edges.length,
       selectedNodeId,
       focusedPin,
     });
     syncingRef.current = true;
-  const lockNow = nowMs();
-  const lockMs = dragLockMsRef.current;
-  pruneDragLocks(dragLockRef.current, lockNow, lockMs);
-    const existingIds = new Set(nodesRef.current.keys());
-    for (const [id, node] of reteData.nodes.entries()) {
-      const existing = nodesRef.current.get(id);
-      const isLocked = isDragLocked(dragLockRef.current, id, lockNow, lockMs);
-      if (!existing) {
-        editor.addNode(node);
-        if (!isLocked) {
-          area.translate(id, node.pos);
-        }
-        nodesRef.current.set(id, node);
-      } else {
-        Object.assign(existing, {
-          label: node.label,
-          inputsMeta: node.inputsMeta,
-          outputsMeta: node.outputsMeta,
-          nodeErrors: node.nodeErrors,
-          pinErrors: node.pinErrors,
-          focusedPinKey: node.focusedPinKey,
-          isRunning: node.isRunning,
-          hasBreakpoint: node.hasBreakpoint,
-        });
-        if (!isLocked) {
-          area.translate(id, node.pos);
-        }
-        area.update("node", id);
-      }
-      existingIds.delete(id);
-    }
 
-    for (const stale of existingIds) {
-      editor.removeNode(stale);
-      nodesRef.current.delete(stale);
-    }
+    const syncNodes = async () => {
+      const lockNow = nowMs();
+      const lockMs = dragLockMsRef.current;
+      pruneDragLocks(dragLockRef.current, lockNow, lockMs);
+      const existingIds = new Set(nodesRef.current.keys());
+
+      for (const node of graph.nodes) {
+        if (syncTokenRef.current !== token) return;
+        const resolved = resolveNodeDefinition(node, graph, registryRef.current);
+        if (!resolved) continue;
+        const signature = buildNodeSignature(node, resolved);
+        const existing = nodesRef.current.get(node.id) as (ClassicPreset.Node<ReteNodeData> & { __sig?: string }) | undefined;
+        const isLocked = isDragLocked(dragLockRef.current, node.id, lockNow, lockMs);
+        const focusedPinKey = selectedNodeId && focusedPin?.nodeId === node.id ? focusedPin.pinKey : null;
+        const nodeErrors = errorMap.get(node.id)?.nodeErrors ?? [];
+        const pinErrors = errorMap.get(node.id)?.pinErrors ?? {};
+        const isRunning = runningNodeId === node.id;
+        const hasBreakpoint = breakpoints.includes(node.id);
+        const label = resolved.def.title ?? node.type;
+        const shouldRebuild = !existing || existing.__sig !== signature;
+
+        if (shouldRebuild) {
+          if (existing) {
+            editor.removeNode(node.id);
+            nodesRef.current.delete(node.id);
+          }
+          const reteNode = buildReteNode(node, graph, registryRef.current);
+          reteNode.nodeErrors = nodeErrors;
+          reteNode.pinErrors = pinErrors;
+          reteNode.focusedPinKey = focusedPinKey;
+          reteNode.isRunning = isRunning;
+          reteNode.hasBreakpoint = hasBreakpoint;
+          (reteNode as typeof reteNode & { __sig?: string }).__sig = signature;
+          await editor.addNode(reteNode);
+          if (!isLocked) {
+            await area.translate(node.id, node.pos);
+          }
+          nodesRef.current.set(node.id, reteNode);
+        } else if (existing) {
+          const prevPos = existing.pos ?? { x: 0, y: 0 };
+          const posChanged = prevPos.x !== node.pos.x || prevPos.y !== node.pos.y;
+          const metaChanged =
+            existing.label !== label ||
+            existing.focusedPinKey !== focusedPinKey ||
+            existing.isRunning !== isRunning ||
+            existing.hasBreakpoint !== hasBreakpoint ||
+            existing.nodeErrors !== nodeErrors ||
+            existing.pinErrors !== pinErrors;
+
+          Object.assign(existing, {
+            label,
+            inputsMeta: resolved.inputs,
+            outputsMeta: resolved.outputs,
+            nodeErrors,
+            pinErrors,
+            focusedPinKey,
+            isRunning,
+            hasBreakpoint,
+            pos: node.pos,
+          });
+          if (posChanged && !isLocked) {
+            await area.translate(node.id, node.pos);
+          }
+          if (metaChanged) {
+            await area.update("node", node.id);
+          }
+        }
+        existingIds.delete(node.id);
+      }
+
+      for (const stale of existingIds) {
+        editor.removeNode(stale);
+        nodesRef.current.delete(stale);
+      }
+    };
 
     const syncConnections = async () => {
       syncingConnectionsRef.current = true;
@@ -370,7 +488,7 @@ export const ReteCanvas = ({
         const sourceNode = nodesRef.current.get(edge.from.nodeId);
         const targetNode = nodesRef.current.get(edge.to.nodeId);
         if (!sourceNode || !targetNode) continue;
-        const def = registry.get(sourceNode.type, sourceNode.version) ?? registry.getLatest(sourceNode.type);
+        const def = registryRef.current.get(sourceNode.type, sourceNode.version) ?? registryRef.current.getLatest(sourceNode.type);
         const pin = def?.outputs.find((output) => output.key === edge.from.pinKey);
         const isExec = pin?.kind === "exec";
         await editor.addConnection(buildReteConnection(edge, sourceNode, targetNode, isExec));
@@ -391,8 +509,11 @@ export const ReteCanvas = ({
       debugLog("rete:sync:end");
     };
 
-    void syncConnections();
-  }, [graph.edges, registry, reteData]);
+    void (async () => {
+      await syncNodes();
+      await syncConnections();
+    })();
+  }, [breakpoints, errorMap, focusedPin, graph, runningNodeId, selectedNodeId]);
 
   useEffect(() => {
     const selector = selectorRef.current;
@@ -412,53 +533,4 @@ export const ReteCanvas = ({
   }, [selectedNodeIds]);
 
   return <div className="rete-canvas" data-testid="canvas-root" ref={containerRef} />;
-};
-
-export const isMultiSelectModifier = (event: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }) =>
-  Boolean(event.ctrlKey || event.metaKey || event.shiftKey);
-
-export const isBackgroundPointer = (event: { target: EventTarget | null }) => {
-  const target = event.target as HTMLElement | null;
-  if (!target || typeof target.closest !== "function") return true;
-  return !target.closest(".rete-node");
-};
-
-export const selectionMatches = (entities: Map<string, unknown>, selectedNodeIds: string[]) => {
-  if (entities.size !== selectedNodeIds.length) return false;
-  for (const id of selectedNodeIds) {
-    if (!entities.has(id)) return false;
-  }
-  return true;
-};
-
-export const isDragLocked = (
-  lockMap: Map<string, number>,
-  nodeId: string,
-  now: number,
-  lockMs: number
-) => {
-  const last = lockMap.get(nodeId);
-  if (last === undefined) return false;
-  return now - last < lockMs;
-};
-
-export const shouldSkipEditorPipe = (syncingConnections: boolean, syncing: boolean) => {
-  if (syncingConnections) return "syncingConnections";
-  if (syncing) return "syncing";
-  return null;
-};
-
-export const pruneDragLocks = (
-  lockMap: Map<string, number>,
-  now: number,
-  lockMs: number
-) => {
-  let removed = 0;
-  for (const [id, ts] of lockMap.entries()) {
-    if (now - ts > lockMs * 2) {
-      lockMap.delete(id);
-      removed += 1;
-    }
-  }
-  return removed;
 };

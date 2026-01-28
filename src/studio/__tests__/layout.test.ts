@@ -28,7 +28,7 @@ describe("getGraphCenter", () => {
     expect(getGraphCenter(graph)).toEqual({ x: 10, y: 30 });
   });
 
-  it("auto layouts by depth", () => {
+  it("auto layouts by depth", async () => {
     const graph: Graph = {
       id: "g",
       version: 1,
@@ -40,7 +40,7 @@ describe("getGraphCenter", () => {
       ],
       edges: [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "next", pinKey: "in" } }],
     };
-    const commands = autoLayoutGraph(graph, registry, 100, 50);
+    const commands = await autoLayoutGraph(graph, registry, 100, 50, { engine: "simple" });
     expect(commands.length).toBe(3);
     const target = commands.find((cmd) => cmd.nodeId === "next");
     expect(target?.pos.x).toBe(100);
@@ -48,7 +48,7 @@ describe("getGraphCenter", () => {
     expect(lonely?.pos.x).toBe(0);
   });
 
-  it("auto layout empty graph", () => {
+  it("auto layout empty graph", async () => {
     const graph: Graph = {
       id: "g",
       version: 1,
@@ -56,7 +56,7 @@ describe("getGraphCenter", () => {
       nodes: [],
       edges: [],
     };
-    const commands = autoLayoutGraph(graph, registry);
+    const commands = await autoLayoutGraph(graph, registry, 240, 140, { engine: "simple" });
     expect(commands.length).toBe(0);
   });
 });

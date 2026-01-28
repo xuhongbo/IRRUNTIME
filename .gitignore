@@ -26,3 +26,5 @@ dist-ssr
 coverage/**
 
 test-results/**
+
+n8n/**/*

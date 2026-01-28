@@ -361,7 +361,9 @@ const StudioApp = () => {
       {
         id: "auto-layout",
         title: "自动布局",
-        run: () => applyCommands(autoLayoutGraph(graphRef.current, registry)),
+        run: () => {
+          void autoLayoutGraph(graphRef.current, registry).then((commands) => applyCommands(commands));
+        },
       },
       {
         id: "focus-error",
@@ -657,7 +659,7 @@ const StudioApp = () => {
               <Palette graph={graph} registry={registry} center={graphCenter} onAddNode={addNode} />
             </Drawer>
 
-            <Box component="main" sx={{ flexGrow: 1, display: "flex", flexDirection: "column", ml: `${DRAWER_WIDTH}px`, mr: `${RIGHT_DRAWER_WIDTH}px`, height: "100%" }}>
+            <Box component="main" sx={{ flexGrow: 1, display: "flex", flexDirection: "column", height: "100%" }}>
               <Box sx={{ flexGrow: 1, position: "relative" }}>
                 <GraphViewer
                   graph={graph}
@@ -675,7 +677,9 @@ const StudioApp = () => {
                   onDistribute={(mode) =>
                     applyCommands(distributeNodes(graphRef.current, selectedNodeIds, mode))
                   }
-                  onAutoLayout={() => applyCommands(autoLayoutGraph(graphRef.current, registry))}
+                  onAutoLayout={() => {
+                    void autoLayoutGraph(graphRef.current, registry).then((commands) => applyCommands(commands));
+                  }}
                   onSelectNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
                   onSelectNodes={(nodeIds) => {
                     setSelectedNodeIds(nodeIds);
