@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Graph, NodePosition } from "../engine/ir";
 import type { Registry } from "../engine/registry";
-import { createNodeInstance, listPaletteItems } from "../studio/nodeFactory";
+import { createNodeInstance, listDataPaletteItems, listFlowPaletteItems, type NodeCategory } from "../studio/nodeFactory";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import List from "@mui/material/List";
@@ -18,6 +18,7 @@ import CallSplitIcon from "@mui/icons-material/CallSplit";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import WidgetsIcon from "@mui/icons-material/Widgets";
+import Switch from "@mui/material/Switch";
 
 type PaletteProps = {
   graph: Graph;
@@ -37,10 +38,11 @@ const getNodeIcon = (type: string) => {
 
 export const Palette = ({ graph, registry, center, onAddNode }: PaletteProps) => {
   const [query, setQuery] = useState("");
+  const [showDataNodes, setShowDataNodes] = useState(false);
   const addCounterRef = useRef(0);
 
   const items = useMemo(() => {
-    const list = listPaletteItems(registry);
+    const list = listFlowPaletteItems(registry);
     const lower = query.trim().toLowerCase();
     if (!lower) return list;
     return list.filter(
@@ -49,6 +51,38 @@ export const Palette = ({ graph, registry, center, onAddNode }: PaletteProps) =>
         item.type.toLowerCase().includes(lower)
     );
   }, [query, registry]);
+
+  const dataItems = useMemo(() => {
+    if (!showDataNodes) return [];
+    const list = listDataPaletteItems(registry);
+    const lower = query.trim().toLowerCase();
+    if (!lower) return list;
+    return list.filter(
+      (item) =>
+        item.title.toLowerCase().includes(lower) ||
+        item.type.toLowerCase().includes(lower)
+    );
+  }, [query, registry, showDataNodes]);
+
+  const grouped = useMemo(() => {
+    const groups = new Map<NodeCategory, typeof items>();
+    for (const item of items) {
+      const list = groups.get(item.category) ?? [];
+      list.push(item);
+      groups.set(item.category, list);
+    }
+    return groups;
+  }, [items]);
+
+  const groupedData = useMemo(() => {
+    const groups = new Map<NodeCategory, typeof dataItems>();
+    for (const item of dataItems) {
+      const list = groups.get(item.category) ?? [];
+      list.push(item);
+      groups.set(item.category, list);
+    }
+    return groups;
+  }, [dataItems]);
 
   const handleAdd = (type: string, version: number) => {
     const offset = addCounterRef.current * 24;
@@ -86,32 +120,85 @@ export const Palette = ({ graph, registry, center, onAddNode }: PaletteProps) =>
             },
           }}
         />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            显示数据节点
+          </Typography>
+          <Switch
+            size="small"
+            checked={showDataNodes}
+            onChange={(event) => setShowDataNodes(event.target.checked)}
+          />
+        </Box>
       </Box>
       <Divider />
       <List sx={{ flexGrow: 1, overflow: "auto", px: 1 }} dense>
-        {items.map((item) => (
-          <ListItemButton
-            key={`${item.type}@${item.version}`}
-            onClick={() => handleAdd(item.type, item.version)}
-            data-testid={`palette-${item.type}@${item.version}`}
-            sx={{ 
-                mb: 0.5, 
-                borderRadius: 1,
-                "&:hover": { bgcolor: "action.hover" }
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 32 }}>
-                {getNodeIcon(item.type)}
-            </ListItemIcon>
-            <ListItemText
-              primary={item.title}
-              secondary={item.type}
-              primaryTypographyProps={{ variant: "body2", fontWeight: 500, color: "text.primary" }}
-              secondaryTypographyProps={{ variant: "caption", color: "text.secondary", fontFamily: "monospace" }}
-            />
-          </ListItemButton>
+        {Array.from(grouped.entries()).map(([category, list]) => (
+          <Box key={category} sx={{ mb: 1 }}>
+            <Typography variant="caption" sx={{ px: 1, py: 0.5, color: "text.secondary", fontWeight: 700 }}>
+              {category}
+            </Typography>
+            {list.map((item) => (
+              <ListItemButton
+                key={`${item.type}@${item.version}`}
+                onClick={() => handleAdd(item.type, item.version)}
+                data-testid={`palette-${item.type}@${item.version}`}
+                sx={{
+                  mb: 0.5,
+                  borderRadius: 1,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  {getNodeIcon(item.type)}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.title}
+                  secondary={item.type}
+                  primaryTypographyProps={{ variant: "body2", fontWeight: 500, color: "text.primary" }}
+                  secondaryTypographyProps={{ variant: "caption", color: "text.secondary", fontFamily: "monospace" }}
+                />
+              </ListItemButton>
+            ))}
+          </Box>
         ))}
-        {items.length === 0 && (
+        {showDataNodes && (
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="caption" sx={{ px: 1, py: 0.5, color: "text.secondary", fontWeight: 700 }}>
+              数据节点
+            </Typography>
+            {Array.from(groupedData.entries()).map(([category, list]) => (
+              <Box key={`data-${category}`} sx={{ mb: 1 }}>
+                <Typography variant="caption" sx={{ px: 1, py: 0.5, color: "text.disabled" }}>
+                  {category}
+                </Typography>
+                {list.map((item) => (
+                  <ListItemButton
+                    key={`data-${item.type}@${item.version}`}
+                    onClick={() => handleAdd(item.type, item.version)}
+                    data-testid={`palette-data-${item.type}@${item.version}`}
+                    sx={{
+                      mb: 0.5,
+                      borderRadius: 1,
+                      "&:hover": { bgcolor: "action.hover" },
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      {getNodeIcon(item.type)}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.title}
+                      secondary={item.type}
+                      primaryTypographyProps={{ variant: "body2", fontWeight: 500, color: "text.primary" }}
+                      secondaryTypographyProps={{ variant: "caption", color: "text.secondary", fontFamily: "monospace" }}
+                    />
+                  </ListItemButton>
+                ))}
+              </Box>
+            ))}
+          </Box>
+        )}
+        {items.length === 0 && dataItems.length === 0 && (
           <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
             <Typography variant="body2">未找到相关节点</Typography>
           </Box>

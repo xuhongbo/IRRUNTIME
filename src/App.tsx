@@ -6,6 +6,7 @@ import { GraphViewer } from "./ui/GraphViewer";
 import { Inspector } from "./ui/Inspector";
 import { Runner } from "./ui/Runner";
 import { TracePanel } from "./ui/TracePanel";
+import { VariablesPanel } from "./ui/VariablesPanel";
 import { JsonTab } from "./ui/JsonTab";
 import { GraphSettings } from "./ui/GraphSettings";
 import { useStudio } from "./studio/useStudio";
@@ -29,7 +30,7 @@ import { copySelection, defaultPasteOffset, duplicateSelection, pasteSelection }
 import { alignNodes, distributeNodes } from "./studio/align";
 import { lintGraph } from "./studio/lint";
 import { LintPanel } from "./ui/LintPanel";
-import { createNodeInstance } from "./studio/nodeFactory";
+import { createNodeInstance, listFlowPaletteItems } from "./studio/nodeFactory";
 import { CommandPalette } from "./ui/CommandPalette";
 
 // MUI Imports
@@ -99,6 +100,7 @@ const StudioApp = () => {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [errorIndex, setErrorIndex] = useState(0);
+  const [rightTab, setRightTab] = useState<"trace" | "vars">("trace");
   const historyRef = useRef(createHistoryState(80));
   const pendingHistoryRef = useRef(false);
   const historyActionRef = useRef<"undo" | "redo" | "remote" | null>(null);
@@ -324,12 +326,12 @@ const StudioApp = () => {
   };
 
   const paletteActions = useMemo(() => {
-    const addActions = registry.listTypes().map((type) => ({
-      id: `add-${type}`,
-      title: `添加节点：${type}`,
-      keywords: type,
+    const addActions = listFlowPaletteItems(registry).map((item) => ({
+      id: `add-${item.type}`,
+      title: `添加节点：${item.title}`,
+      keywords: `${item.type} ${item.title} ${item.category}`,
       run: () => {
-        const node = createNodeInstance(type, registry, graphCenter);
+        const node = createNodeInstance(item.type, registry, graphCenter);
         addNode(node);
       },
     }));
@@ -744,8 +746,22 @@ const StudioApp = () => {
                     onToggleBreakpoint={(nodeId) => runtimeSend({ type: "TOGGLE_BREAKPOINT", nodeId })}
                   />
               </Box>
-              <Box sx={{ height: "50%", overflow: "auto" }}>
-                 <TracePanel trace={ecs.trace} runMeta={snapshot.runMeta} />
+              <Box sx={{ height: "50%", overflow: "auto", display: "flex", flexDirection: "column" }}>
+                <Tabs
+                  value={rightTab}
+                  onChange={(_, value) => setRightTab(value)}
+                  variant="fullWidth"
+                >
+                  <Tab label="执行轨迹" value="trace" />
+                  <Tab label="变量" value="vars" />
+                </Tabs>
+                <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+                  {rightTab === "trace" ? (
+                    <TracePanel trace={ecs.trace} runMeta={snapshot.runMeta} />
+                  ) : (
+                    <VariablesPanel vars={snapshot.vars} />
+                  )}
+                </Box>
               </Box>
             </Drawer>
           </>

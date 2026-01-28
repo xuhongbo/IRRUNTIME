@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { Graph, NodeInstance } from "./ir";
 import { normalizeContract } from "./contract";
-import { runScriptInWorker } from "./scriptRunner";
+import { runScriptInSandbox, runScriptInWorker } from "./scriptRunner";
+import { normalizeVarName } from "./vars";
 import type { ChoiceOption, ViewModel } from "./viewModel";
 
 export type PinDef = {
@@ -48,6 +49,7 @@ export type RunResult = {
   subgraph?: { graphId: string };
   deferred?: Promise<RunResult>;
   logs?: string[];
+  error?: string;
 };
 
 export type NodeDefinition = {
@@ -249,7 +251,16 @@ const setVarNode: NodeDefinition = {
   defaultProps: {},
   form: [],
   run: (ctx) => {
-    const name = String(ctx.inputs.name ?? "");
+    const rawName = String(ctx.inputs.name ?? "");
+    const name = normalizeVarName(rawName);
+    if (!name) {
+      return {
+        data: {},
+        exec: "out",
+        error: "Variable name is required.",
+        viewModel: { kind: "error", title: "SetVar", body: "Variable name is required." },
+      };
+    }
     ctx.vars[name] = ctx.inputs.value;
     return {
       data: { value: ctx.inputs.value },
@@ -276,7 +287,16 @@ const getVarNode: NodeDefinition = {
   defaultProps: {},
   form: [],
   run: (ctx) => {
-    const name = String(ctx.inputs.name ?? "");
+    const rawName = String(ctx.inputs.name ?? "");
+    const name = normalizeVarName(rawName);
+    if (!name) {
+      return {
+        data: { value: undefined },
+        exec: "out",
+        error: "Variable name is required.",
+        viewModel: { kind: "error", title: "GetVar", body: "Variable name is required." },
+      };
+    }
     return {
       data: { value: ctx.vars[name] },
       exec: "out",
@@ -348,17 +368,13 @@ const constStringNode: NodeDefinition = {
   version: 1,
   title: "Const String",
   description: "Emit a string literal.",
-  inputs: [{ key: "in", label: "In", kind: "exec" }],
-  outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "string" },
-  ],
+  inputs: [],
+  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "string" }],
   propsSchema: z.object({ value: z.string().default("") }).strict(),
   defaultProps: { value: "" },
   form: [{ key: "value", label: "Value", type: "string" }],
   run: (ctx) => ({
     data: { value: String(ctx.props.value ?? "") },
-    exec: "out",
     viewModel: { kind: "text", title: "Const", body: "String literal emitted." },
   }),
 };
@@ -368,17 +384,13 @@ const constNumberNode: NodeDefinition = {
   version: 1,
   title: "Const Number",
   description: "Emit a number literal.",
-  inputs: [{ key: "in", label: "In", kind: "exec" }],
-  outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "number" },
-  ],
+  inputs: [],
+  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "number" }],
   propsSchema: z.object({ value: z.number().default(0) }).strict(),
   defaultProps: { value: 0 },
   form: [{ key: "value", label: "Value", type: "number" }],
   run: (ctx) => ({
     data: { value: Number(ctx.props.value ?? 0) },
-    exec: "out",
     viewModel: { kind: "text", title: "Const", body: "Number literal emitted." },
   }),
 };
@@ -388,17 +400,13 @@ const constBooleanNode: NodeDefinition = {
   version: 1,
   title: "Const Boolean",
   description: "Emit a boolean literal.",
-  inputs: [{ key: "in", label: "In", kind: "exec" }],
-  outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "boolean" },
-  ],
+  inputs: [],
+  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "boolean" }],
   propsSchema: z.object({ value: z.boolean().default(false) }).strict(),
   defaultProps: { value: false },
   form: [{ key: "value", label: "Value", type: "boolean" }],
   run: (ctx) => ({
     data: { value: Boolean(ctx.props.value) },
-    exec: "out",
     viewModel: { kind: "text", title: "Const", body: "Boolean literal emitted." },
   }),
 };
@@ -408,17 +416,13 @@ const constJsonNode: NodeDefinition = {
   version: 1,
   title: "Const JSON",
   description: "Emit a JSON literal.",
-  inputs: [{ key: "in", label: "In", kind: "exec" }],
-  outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "json" },
-  ],
+  inputs: [],
+  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "json" }],
   propsSchema: z.object({ value: z.unknown() }).strict(),
   defaultProps: { value: { sample: true } },
   form: [{ key: "value", label: "Value", type: "json" }],
   run: (ctx) => ({
     data: { value: ctx.props.value },
-    exec: "out",
     viewModel: { kind: "text", title: "Const", body: "JSON literal emitted." },
   }),
 };
@@ -428,14 +432,8 @@ const toNumberNode: NodeDefinition = {
   version: 1,
   title: "To Number",
   description: "Convert a JSON value into a number.",
-  inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "json", required: true },
-  ],
-  outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "number", label: "Number", kind: "data", dataType: "number" },
-  ],
+  inputs: [{ key: "value", label: "Value", kind: "data", dataType: "json", required: true }],
+  outputs: [{ key: "number", label: "Number", kind: "data", dataType: "number" }],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
   form: [],
@@ -446,7 +444,6 @@ const toNumberNode: NodeDefinition = {
     }
     return {
       data: { number: num },
-      exec: "out",
       viewModel: { kind: "text", title: "ToNumber", body: `Converted to ${num}.` },
     };
   },
@@ -457,20 +454,13 @@ const toStringNode: NodeDefinition = {
   version: 1,
   title: "To String",
   description: "Convert a JSON value into a string.",
-  inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "json", required: true },
-  ],
-  outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "text", label: "Text", kind: "data", dataType: "string" },
-  ],
+  inputs: [{ key: "value", label: "Value", kind: "data", dataType: "json", required: true }],
+  outputs: [{ key: "text", label: "Text", kind: "data", dataType: "string" }],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
   form: [],
   run: (ctx) => ({
     data: { text: String(ctx.inputs.value ?? "") },
-    exec: "out",
     viewModel: { kind: "text", title: "ToString", body: "Converted to string." },
   }),
 };
@@ -592,6 +582,61 @@ const delayNode: NodeDefinition = {
   },
 };
 
+const expressionNode: NodeDefinition = {
+  type: "Expression",
+  version: 1,
+  title: "Expression",
+  description: "Evaluate a lightweight expression with inputs and vars.",
+  inputs: [{ key: "input", label: "Input", kind: "data", dataType: "json", required: false }],
+  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "json" }],
+  propsSchema: z
+    .object({
+      expression: z.string().default("inputs.input"),
+      timeoutMs: z.number().min(10).max(10000).default(200),
+      maxOutputSize: z.number().min(1000).max(200000).default(20000),
+      maxLogEntries: z.number().min(1).max(200).default(20),
+      maxLogChars: z.number().min(50).max(2000).default(300),
+    })
+    .strict(),
+  defaultProps: {
+    expression: "inputs.input",
+    timeoutMs: 200,
+    maxOutputSize: 20000,
+    maxLogEntries: 20,
+    maxLogChars: 300,
+  },
+  form: [
+    { key: "expression", label: "Expression", type: "textarea" },
+    { key: "timeoutMs", label: "Timeout (ms)", type: "number" },
+  ],
+  run: (ctx) => {
+    const expression = String(ctx.props.expression ?? "");
+    if (!expression.trim()) {
+      return {
+        data: { value: null },
+        error: "Expression is empty.",
+        viewModel: { kind: "error", title: "Expression", body: "Expression is empty." },
+      };
+    }
+    const code = `return { value: (${expression}) };`;
+    const result = runScriptInSandbox({
+      code,
+      inputs: { input: ctx.inputs.input },
+      context: { vars: ctx.vars },
+      timeoutMs: Number(ctx.props.timeoutMs ?? 200),
+      maxOutputSize: Number(ctx.props.maxOutputSize ?? 20000),
+      maxLogEntries: Number(ctx.props.maxLogEntries ?? 20),
+      maxLogChars: Number(ctx.props.maxLogChars ?? 300),
+      seed: 0,
+    });
+    return {
+      data: { value: result.data.value },
+      viewModel: { kind: "text", title: "Expression", body: "Expression evaluated." },
+      logs: result.logs,
+    };
+  },
+};
+
 const divideNode: NodeDefinition = {
   type: "Divide",
   version: 1,
@@ -675,6 +720,7 @@ const definitions: NodeDefinition[] = [
   showTextNodeV2,
   waitChoiceNode,
   delayNode,
+  expressionNode,
   divideNode,
   subgraphNode,
 ];

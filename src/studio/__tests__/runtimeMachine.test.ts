@@ -10,6 +10,7 @@ const baseSnapshot: RuntimeSnapshot = {
   breakpoints: [],
   lastNodeIO: {},
   outputs: {},
+  vars: {},
   runMeta: {
     runId: 1,
     graphId: "g",

@@ -1,7 +1,7 @@
 import React from "react";
 import { render } from "@testing-library/react";
 import { CanvasOnly } from "../CanvasOnly";
-import { sampleGraph } from "../../engine/sampleGraph";
+import { sampleGraph } from "../../mock/graph";
 import { registry } from "../../engine/registry";
 
 jest.mock("../../studio/rete/ReteCanvas", () => ({

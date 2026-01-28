@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Graph } from "../engine/ir";
-import { sampleGraph } from "../engine/sampleGraph";
+import { sampleGraph } from "../mock/graph";
 import { registry } from "../engine/registry";
 import type { ValidationError } from "../engine/validator";
 

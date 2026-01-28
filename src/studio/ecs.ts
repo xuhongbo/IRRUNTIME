@@ -21,6 +21,7 @@ export type EcsState = {
   breakpoints: string[];
   trace: RuntimeSnapshot["trace"];
   lastNodeIO: RuntimeSnapshot["lastNodeIO"];
+  vars: RuntimeSnapshot["vars"];
 };
 
 export const createEcsState = (graph: Graph): EcsState => {
@@ -45,6 +46,7 @@ export const createEcsState = (graph: Graph): EcsState => {
     breakpoints: [],
     trace: [],
     lastNodeIO: {},
+    vars: {},
   };
 };
 
@@ -96,4 +98,5 @@ export const setRuntimeState = (state: EcsState, snapshot: RuntimeSnapshot) => {
   state.breakpoints = snapshot.breakpoints;
   state.trace = snapshot.trace;
   state.lastNodeIO = snapshot.lastNodeIO;
+  state.vars = snapshot.vars;
 };

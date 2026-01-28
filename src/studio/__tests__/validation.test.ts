@@ -1,5 +1,5 @@
 import { validateGraphWithRegistry } from "../validation";
-import { sampleGraph } from "../../engine/sampleGraph";
+import { sampleGraph } from "../../mock/graph";
 import { registry } from "../../engine/registry";
 
 describe("validateGraphWithRegistry", () => {

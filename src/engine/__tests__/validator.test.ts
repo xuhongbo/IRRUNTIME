@@ -3,7 +3,7 @@ import { registry } from "../registry";
 import type { Registry } from "../registry";
 import { z } from "zod";
 import type { Graph } from "../ir";
-import { sampleGraph } from "../sampleGraph";
+import { sampleGraph } from "../../mock/graph";
 
 const basePos = { x: 0, y: 0 };
 

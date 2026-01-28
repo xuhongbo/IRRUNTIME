@@ -248,8 +248,12 @@ export const ReteCanvas = ({
       accumulating: AreaExtensions.accumulateOnCtrl(),
     });
 
-    const notifySelection = () => {
+    const notifySelection = (fallbackId?: string) => {
       const selected = Array.from(selectorRef.current.entities.keys());
+      if (selected.length === 0 && fallbackId) {
+        onSelectNodesEvent([fallbackId]);
+        return;
+      }
       onSelectNodesEvent(selected);
     };
 
@@ -274,11 +278,12 @@ export const ReteCanvas = ({
         }
       }
       if (context.type === "nodepicked") {
-        onSelectNodeEvent(context.data.id);
-        notifySelection();
+        const pickedId = context.data.id;
+        onSelectNodeEvent(pickedId);
+        notifySelection(pickedId);
       }
       if (context.type === "pointerup") {
-        notifySelection();
+        notifySelection(selectedNodeId ?? undefined);
       }
       if (context.type === "nodedragged") {
         const node = context.data;
@@ -409,7 +414,11 @@ export const ReteCanvas = ({
 
         if (shouldRebuild) {
           if (existing) {
-            editor.removeNode(node.id);
+            try {
+              await editor.removeNode(node.id);
+            } catch {
+              // 节点可能已被移除
+            }
             nodesRef.current.delete(node.id);
           }
           const reteNode = buildReteNode(node, graph, registryRef.current);
@@ -457,7 +466,11 @@ export const ReteCanvas = ({
       }
 
       for (const stale of existingIds) {
-        editor.removeNode(stale);
+        try {
+          await editor.removeNode(stale);
+        } catch {
+          // 节点可能已被移除
+        }
         nodesRef.current.delete(stale);
       }
     };

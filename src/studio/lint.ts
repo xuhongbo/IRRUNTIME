@@ -1,4 +1,7 @@
 import type { Graph } from "../engine/ir";
+import { isNamespaced } from "../engine/vars";
+import { registry } from "../engine/registry";
+import { resolveNodeDefinition } from "../engine/contract";
 import type { Command } from "./commands";
 
 export type LintIssue = {
@@ -12,6 +15,7 @@ export type LintIssue = {
 export const lintGraph = (graph: Graph): LintIssue[] => {
   const issues: LintIssue[] = [];
   const edgesByNode = new Map<string, { inExec: number; outExec: number }>();
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
   for (const node of graph.nodes) {
     edgesByNode.set(node.id, { inExec: 0, outExec: 0 });
   }
@@ -24,6 +28,14 @@ export const lintGraph = (graph: Graph): LintIssue[] => {
   for (const node of graph.nodes) {
     const stats = edgesByNode.get(node.id);
     if (!stats) continue;
+    const resolved = resolveNodeDefinition(node, graph, registry);
+    const hasExecPins = resolved
+      ? resolved.inputs.some((pin) => pin.kind === "exec") ||
+        resolved.outputs.some((pin) => pin.kind === "exec")
+      : true;
+    if (!hasExecPins) {
+      continue;
+    }
     if (node.type !== "Start" && stats.inExec === 0) {
       issues.push({
         id: `no-in-${node.id}`,
@@ -53,5 +65,25 @@ export const lintGraph = (graph: Graph): LintIssue[] => {
       });
     }
   }
+
+  for (const node of graph.nodes) {
+    if (node.type !== "SetVar" && node.type !== "GetVar") continue;
+    const nameEdge = graph.edges.find(
+      (edge) => edge.to.nodeId === node.id && edge.to.pinKey === "name"
+    );
+    if (!nameEdge) continue;
+    const source = nodesById.get(nameEdge.from.nodeId);
+    if (!source || source.type !== "ConstString") continue;
+    const value = String(source.props?.value ?? "");
+    if (value && !isNamespaced(value)) {
+      issues.push({
+        id: `var-namespace-${node.id}`,
+        nodeId: node.id,
+        severity: "info",
+        message: "变量名建议使用命名空间，例如 global.xxx。",
+      });
+    }
+  }
+
   return issues;
 };

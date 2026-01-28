@@ -4,7 +4,7 @@ import { registry } from "../engine/registry";
 import type { ValidationError } from "../engine/validator";
 import { parseGraphJson, stringifyGraph } from "./json";
 import { validateGraphWithRegistry } from "./validation";
-import { sampleGraph } from "../engine/sampleGraph";
+import { sampleGraph } from "../mock/graph";
 
 export type ValidationStatus = "idle" | "validating" | "valid" | "invalid";
 

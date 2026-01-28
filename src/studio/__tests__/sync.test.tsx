@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { render, waitFor } from "@testing-library/react";
 import type { Graph } from "../../engine/ir";
-import { sampleGraph } from "../../engine/sampleGraph";
+import { sampleGraph } from "../../mock/graph";
 import type { Command } from "../commands";
 import { acceptMessage, createSourceId, useGraphSync } from "../sync";
 
