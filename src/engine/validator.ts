@@ -38,19 +38,19 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
   const contract = normalizeContract(graph.contract);
 
   if (!nodeMap.has(graph.entryNodeId)) {
-    errors.push({ message: "Entry node does not exist.", nodeId: graph.entryNodeId });
+    errors.push({ message: "入口节点不存在。", nodeId: graph.entryNodeId });
   }
 
   if (hasDuplicateNames(contract.inputs.map((item) => item.name))) {
-    errors.push({ message: "Duplicate graph input name.", nodeId: graph.entryNodeId });
+    errors.push({ message: "图输入名称重复。", nodeId: graph.entryNodeId });
   }
   if (hasDuplicateNames(contract.outputs.map((item) => item.name))) {
-    errors.push({ message: "Duplicate graph output name.", nodeId: graph.entryNodeId });
+    errors.push({ message: "图输出名称重复。", nodeId: graph.entryNodeId });
   }
   for (const input of contract.inputs) {
     if (!isValidDefaultValue(input.type, input.defaultValue)) {
       errors.push({
-        message: `Contract input "${input.name}" defaultValue type mismatch.`,
+        message: `合约输入“${input.name}”的默认值类型不匹配。`,
         nodeId: graph.entryNodeId,
         severity: "error",
       });
@@ -59,7 +59,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
   for (const output of contract.outputs) {
     if (!isValidDefaultValue(output.type, output.defaultValue)) {
       errors.push({
-        message: `Contract output "${output.name}" defaultValue type mismatch.`,
+        message: `合约输出“${output.name}”的默认值类型不匹配。`,
         nodeId: graph.entryNodeId,
         severity: "error",
       });
@@ -69,42 +69,42 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
   const edgeIds = new Set<string>();
   for (const edge of graph.edges) {
     if (edgeIds.has(edge.id)) {
-      errors.push({ message: "Duplicate edge id.", nodeId: edge.from.nodeId });
+      errors.push({ message: "边 ID 重复。", nodeId: edge.from.nodeId });
     }
     edgeIds.add(edge.id);
     const fromNode = nodeMap.get(edge.from.nodeId);
     const toNode = nodeMap.get(edge.to.nodeId);
     if (!fromNode) {
-      errors.push({ message: "Edge source node missing.", nodeId: edge.from.nodeId, pinId: edge.from.pinKey, severity: "error" });
+      errors.push({ message: "连线起点节点缺失。", nodeId: edge.from.nodeId, pinId: edge.from.pinKey, severity: "error" });
       continue;
     }
     if (!toNode) {
-      errors.push({ message: "Edge target node missing.", nodeId: edge.to.nodeId, pinId: edge.to.pinKey, severity: "error" });
+      errors.push({ message: "连线终点节点缺失。", nodeId: edge.to.nodeId, pinId: edge.to.pinKey, severity: "error" });
       continue;
     }
     const fromResolved = resolveNodeDefinition(fromNode, graph, registry);
     const toResolved = resolveNodeDefinition(toNode, graph, registry);
     if (!fromResolved) {
-      errors.push({ message: "Unknown node type.", nodeId: fromNode.id, severity: "error" });
+      errors.push({ message: "未知节点类型。", nodeId: fromNode.id, severity: "error" });
       continue;
     }
     if (!toResolved) {
-      errors.push({ message: "Unknown node type.", nodeId: toNode.id, severity: "error" });
+      errors.push({ message: "未知节点类型。", nodeId: toNode.id, severity: "error" });
       continue;
     }
     const fromPin = fromResolved.outputs.find((pin) => pin.key === edge.from.pinKey);
     const toPin = toResolved.inputs.find((pin) => pin.key === edge.to.pinKey);
     if (!fromPin) {
-      errors.push({ message: "Edge source pin missing.", nodeId: fromNode.id, pinId: edge.from.pinKey, severity: "error" });
+      errors.push({ message: "连线起点端口缺失。", nodeId: fromNode.id, pinId: edge.from.pinKey, severity: "error" });
       continue;
     }
     if (!toPin) {
-      errors.push({ message: "Edge target pin missing.", nodeId: toNode.id, pinId: edge.to.pinKey, severity: "error" });
+      errors.push({ message: "连线终点端口缺失。", nodeId: toNode.id, pinId: edge.to.pinKey, severity: "error" });
       continue;
     }
     if (fromPin.kind !== toPin.kind) {
       errors.push({
-        message: "Edge connects incompatible pin kinds.",
+        message: "连线连接了不兼容的端口类型。",
         nodeId: toNode.id,
         pinId: edge.to.pinKey,
         severity: "error",
@@ -113,7 +113,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
     }
     if (fromPin.kind === "data" && !isAssignable(fromPin.dataType, toPin.dataType)) {
       errors.push({
-        message: "Edge connects incompatible data types.",
+        message: "连线连接了不兼容的数据类型。",
         nodeId: toNode.id,
         pinId: edge.to.pinKey,
         severity: "error",
@@ -144,13 +144,13 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
   for (const node of graph.nodes) {
     const resolved = resolveNodeDefinition(node, graph, registry);
     if (!resolved) {
-      errors.push({ message: "Unknown node type.", nodeId: node.id, severity: "error" });
+      errors.push({ message: "未知节点类型。", nodeId: node.id, severity: "error" });
       continue;
     }
     const propsResult = resolved.def.propsSchema.safeParse(node.props);
     if (!propsResult.success) {
       errors.push({
-        message: "Node props failed schema validation.",
+        message: "节点属性未通过结构校验。",
         nodeId: node.id,
         severity: "error",
       });
@@ -163,7 +163,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       if (pin.kind === "data") {
         if (incomingCount > 1) {
           errors.push({
-            message: "Data input has multiple incoming edges.",
+            message: "数据输入存在多个进入连线。",
             nodeId: node.id,
             pinId: pin.key,
             severity: "error",
@@ -173,7 +173,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
         const hasDefault = pin.defaultValue !== undefined;
         if (pin.required && !hasEdge && !hasDefault) {
           errors.push({
-            message: "Required input pin missing connection.",
+            message: "必填输入端口缺少连接。",
             nodeId: node.id,
             pinId: pin.key,
             severity: "error",
@@ -182,7 +182,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       }
       if (pin.kind === "exec" && incomingCount > 1) {
         errors.push({
-          message: "Exec input has multiple incoming edges.",
+          message: "执行输入存在多个进入连线。",
           nodeId: node.id,
           pinId: pin.key,
           severity: "error",
@@ -195,7 +195,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
         const count = fromMap.get(pin.key) ?? 0;
         if (count > 1) {
           errors.push({
-            message: "Exec output has multiple outgoing edges.",
+            message: "执行输出存在多个外出连线。",
             nodeId: node.id,
             pinId: pin.key,
             severity: "error",
@@ -213,7 +213,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       const hasOutExec = outExec.some((pin) => (fromMap.get(pin.key) ?? 0) > 0);
       if (!hasOutExec) {
         errors.push({
-          message: "Exec path is dead-end.",
+          message: "执行路径为死路。",
           nodeId: node.id,
           severity: "error",
         });
@@ -224,7 +224,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       const hasInExec = inExec.some((pin) => (toMap.get(pin.key) ?? 0) > 0);
       if (!hasInExec) {
         errors.push({
-          message: "Exec path has no incoming connection.",
+          message: "执行路径缺少进入连线。",
           nodeId: node.id,
           severity: "error",
         });
@@ -235,7 +235,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       const name = typeof node.props.name === "string" ? node.props.name : "";
       if (!name || !findContractPort(graph, "inputs", name)) {
         errors.push({
-          message: "Graph input name is not declared in contract.",
+          message: "图输入名称未在合约中声明。",
           nodeId: node.id,
           severity: "error",
         });
@@ -246,7 +246,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       const name = typeof node.props.name === "string" ? node.props.name : "";
       if (!name || !findContractPort(graph, "outputs", name)) {
         errors.push({
-          message: "Graph output name is not declared in contract.",
+          message: "图输出名称未在合约中声明。",
           nodeId: node.id,
           severity: "error",
         });
@@ -257,7 +257,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       const subgraphId = String(node.props.subgraphId ?? "");
       if (!subgraphId || !graph.subgraphs || !graph.subgraphs[subgraphId]) {
         errors.push({
-          message: "Subgraph reference missing.",
+          message: "子图引用缺失。",
           nodeId: node.id,
           severity: "error",
         });
@@ -272,7 +272,7 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
     );
     if (!hasNode) {
       errors.push({
-        message: `Graph output "${output.name}" is missing a GraphOutput node.`,
+        message: `图输出“${output.name}”缺少对应的图输出节点。`,
         nodeId: graph.entryNodeId,
         severity: "error",
       });

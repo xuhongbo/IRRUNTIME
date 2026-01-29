@@ -7,8 +7,8 @@ import { GameNodeDefinition } from "../../core/Node";
 export const AddNode: GameNodeDefinition = {
   type: 'math.add',
   version: 1,
-  category: 'Math',
-  title: 'Add',
+  category: '数学',
+  title: '加法',
   inputs: [
     { name: 'exec', type: 'exec' },
     { name: 'a', type: 'number', label: 'A', default: 0 },
@@ -16,11 +16,11 @@ export const AddNode: GameNodeDefinition = {
   ],
   outputs: [
     { name: 'exec', type: 'exec' },
-    { name: 'result', type: 'number', label: 'Result' }
+    { name: 'result', type: 'number', label: '结果' }
   ],
   properties: [
-    { name: 'a', type: 'number', label: 'Default A', default: 0 },
-    { name: 'b', type: 'number', label: 'Default B', default: 0 }
+    { name: 'a', type: 'number', label: '默认 A', default: 0 },
+    { name: 'b', type: 'number', label: '默认 B', default: 0 }
   ],
   execute: async (ctx) => {
     let a = await ctx.getInput('a');

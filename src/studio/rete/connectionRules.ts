@@ -47,18 +47,18 @@ export const canConnectEndpoints = (
   to: ConnectionEndpoint
 ): ConnectionDecision => {
   if (from.side !== "output" || to.side !== "input") {
-    return { ok: false, reason: "Connection must be output -> input." };
+    return { ok: false, reason: "连接必须从输出指向输入。" };
   }
   const fromMeta = getPinMeta(graph, registry, from);
   const toMeta = getPinMeta(graph, registry, to);
   if (!fromMeta || !toMeta) {
-    return { ok: false, reason: "Missing pin metadata." };
+    return { ok: false, reason: "缺少端口元信息。" };
   }
   if (fromMeta.kind !== toMeta.kind) {
-    return { ok: false, reason: "Pin kinds must match." };
+    return { ok: false, reason: "端口类型不匹配。" };
   }
   if (fromMeta.kind === "data" && !isAssignable(fromMeta.dataType, toMeta.dataType)) {
-    return { ok: false, reason: "Data types incompatible." };
+    return { ok: false, reason: "数据类型不兼容。" };
   }
 
   const existingEdge = graph.edges.find(
@@ -69,7 +69,7 @@ export const canConnectEndpoints = (
       edge.to.pinKey === to.pinKey
   );
   if (existingEdge) {
-    return { ok: false, reason: "Connection already exists." };
+    return { ok: false, reason: "连接已存在。" };
   }
 
   const outgoingCount = graph.edges.filter(
@@ -80,10 +80,10 @@ export const canConnectEndpoints = (
   ).length;
 
   if (fromMeta.kind === "exec" && outgoingCount >= 1) {
-    return { ok: false, reason: "Exec outputs only allow one connection." };
+    return { ok: false, reason: "执行输出只允许一个连接。" };
   }
   if (incomingCount >= 1) {
-    return { ok: false, reason: "Inputs only allow one connection." };
+    return { ok: false, reason: "输入端口只允许一个连接。" };
   }
 
   return { ok: true };

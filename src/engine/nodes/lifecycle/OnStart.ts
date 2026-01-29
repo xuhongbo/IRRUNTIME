@@ -7,12 +7,12 @@ import { GameNodeDefinition, NodeExecutionResult } from "../../core/Node";
 export const OnStartNode: GameNodeDefinition = {
   type: 'lifecycle.onStart',
   version: 1,
-  category: 'Events',
-  title: 'On Start',
-  description: 'Triggered when the game starts.',
+  category: '事件',
+  title: '开始时',
+  description: '游戏启动时触发。',
   inputs: [],
   outputs: [
-    { name: 'exec', type: 'exec', label: 'Start' }
+    { name: 'exec', type: 'exec', label: '开始' }
   ],
   properties: [],
   execute: async () => {

@@ -33,7 +33,7 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("Entry node"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("入口节点"))).toBe(true);
   });
 
   it("flags incompatible data types", () => {
@@ -50,7 +50,7 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("incompatible data types"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("不兼容的数据类型"))).toBe(true);
   });
 
   it("allows same-type data connections", () => {
@@ -69,7 +69,7 @@ describe("validateGraph", () => {
       "start"
     );
     const result = validateGraph(graph, registry);
-    expect(result.errors.some((err) => err.message.includes("incompatible data types"))).toBe(false);
+    expect(result.errors.some((err) => err.message.includes("不兼容的数据类型"))).toBe(false);
   });
 
   it("flags required data input missing", () => {
@@ -82,7 +82,7 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("Required input"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("必填输入端口"))).toBe(true);
   });
 
   it("flags duplicate edge id and multiple exec outputs", () => {
@@ -99,8 +99,8 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("Duplicate edge id"))).toBe(true);
-    expect(result.errors.some((err) => err.message.includes("Exec output"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("边 ID 重复"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("执行输出"))).toBe(true);
   });
 
   it("flags unknown node types and invalid props", () => {
@@ -119,8 +119,8 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("Unknown node type"))).toBe(true);
-    expect(result.errors.some((err) => err.message.includes("props failed"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("未知节点类型"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("节点属性"))).toBe(true);
   });
 
   it("flags duplicate contract names", () => {
@@ -143,8 +143,8 @@ describe("validateGraph", () => {
     };
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("Duplicate graph input"))).toBe(true);
-    expect(result.errors.some((err) => err.message.includes("Duplicate graph output"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("图输入名称重复"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("图输出名称重复"))).toBe(true);
   });
 
   it("flags contract defaultValue type mismatch", () => {
@@ -161,7 +161,7 @@ describe("validateGraph", () => {
     };
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("defaultValue type mismatch"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("默认值类型不匹配"))).toBe(true);
   });
 
   it("flags unknown edge node type", () => {
@@ -174,7 +174,7 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("Unknown node type"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("未知节点类型"))).toBe(true);
   });
 
   it("flags incompatible pin kinds", () => {
@@ -189,7 +189,7 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("incompatible pin kinds"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("不兼容的端口类型"))).toBe(true);
   });
 
   it("flags multiple incoming exec/data inputs", () => {
@@ -210,8 +210,8 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("Exec input"))).toBe(true);
-    expect(result.errors.some((err) => err.message.includes("Data input"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("执行输入"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("数据输入"))).toBe(true);
   });
 
   it("allows data to connect to json inputs", () => {
@@ -230,7 +230,7 @@ describe("validateGraph", () => {
       "start"
     );
     const result = validateGraph(graph, registry);
-    expect(result.errors.some((err) => err.message.includes("incompatible data types"))).toBe(false);
+    expect(result.errors.some((err) => err.message.includes("不兼容的数据类型"))).toBe(false);
   });
 
   it("handles missing nodes and pins", () => {
@@ -244,7 +244,7 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("missing"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("缺失"))).toBe(true);
   });
 
   it("treats undefined data types as assignable", () => {
@@ -297,7 +297,7 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("Unknown node type"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("未知节点类型"))).toBe(true);
   });
 
   it("flags missing target pins", () => {
@@ -310,7 +310,7 @@ describe("validateGraph", () => {
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
-    expect(result.errors.some((err) => err.message.includes("target pin"))).toBe(true);
+    expect(result.errors.some((err) => err.message.includes("终点端口"))).toBe(true);
   });
 
   it("flags missing graph outputs", () => {

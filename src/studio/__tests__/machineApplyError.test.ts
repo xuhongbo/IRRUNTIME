@@ -15,6 +15,6 @@ describe("studioMachine apply JSON errors", () => {
     actor.send({ type: "APPLY_JSON" });
     await Promise.resolve();
     const state = actor.getSnapshot();
-    expect(state.context.jsonError).toBe("Invalid JSON");
+    expect(state.context.jsonError).toBe("JSON 无效");
   });
 });

@@ -14,7 +14,7 @@ export const parseGraphJson = (draft: string): JsonParseResult => {
     const parsed = JSON.parse(draft) as Graph;
     return { ok: true, graph: parsed };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Invalid JSON" };
+    return { ok: false, error: err instanceof Error ? err.message : "JSON 无效" };
   }
 };
 

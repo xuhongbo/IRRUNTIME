@@ -245,7 +245,7 @@ export class GraphRunner {
       steps += 1;
     }
     if (steps >= this.stepBudget && this.status === "running") {
-      this.failRuntime("Step budget exceeded. Possible infinite loop.");
+      this.failRuntime("执行步数超出预算，可能存在死循环。");
     }
     this.emit();
   }
@@ -291,7 +291,7 @@ export class GraphRunner {
     const execKey = pending.execByChoice[choiceKey];
     const outputs = pending.outputsByChoice[choiceKey] ?? {};
     if (!execKey) {
-      this.failRuntime("Invalid choice selection.");
+      this.failRuntime("无效的选择项。");
       return;
     }
     this.runMeta.choices.push({ nodeId: pending.nodeId, choiceKey });
@@ -305,7 +305,7 @@ export class GraphRunner {
   private executeCurrentNode(ignoreBreakpoint: boolean) {
     if (!this.currentNodeId) {
       this.status = "finished";
-      this.viewModel = { kind: "done", title: "Complete", body: "Graph finished." };
+      this.viewModel = { kind: "done", title: "完成", body: "流程已结束。" };
       return false;
     }
     if (!ignoreBreakpoint && this.breakpoints.has(this.currentNodeId)) {
@@ -314,17 +314,17 @@ export class GraphRunner {
     }
     const graphCtx = this.getGraphContext(this.currentGraphId);
     if (!graphCtx) {
-      this.failRuntime("Graph context not found.");
+      this.failRuntime("未找到图上下文。");
       return false;
     }
     const node = graphCtx.nodeMap.get(this.currentNodeId);
     if (!node) {
-      this.failRuntime(`Node ${this.currentNodeId} not found.`);
+      this.failRuntime(`未找到节点 ${this.currentNodeId}。`);
       return false;
     }
     const def = this.getNodeDefinition(node);
     if (!def) {
-      this.failRuntime(`Definition not found for ${node.type}@${node.version}.`);
+      this.failRuntime(`未找到节点定义：${node.type}@${node.version}。`);
       return false;
     }
 
@@ -380,7 +380,7 @@ export class GraphRunner {
     }
 
     if (!result) {
-      this.failRuntime("Node returned no result.");
+      this.failRuntime("节点未返回结果。");
       return false;
     }
 
@@ -456,7 +456,7 @@ export class GraphRunner {
       const subGraphId = result.subgraph.graphId;
       const subgraph = this.findSubgraph(subGraphId);
       if (!subgraph) {
-        this.failRuntime(`Subgraph ${subGraphId} not found.`);
+        this.failRuntime(`找不到子图 ${subGraphId}。`);
         return false;
       }
       this.graphStack.push({
@@ -491,7 +491,7 @@ export class GraphRunner {
       return;
     }
     this.status = "error";
-    this.viewModel = { kind: "error", title: "Runtime Error", body: error };
+    this.viewModel = { kind: "error", title: "运行时错误", body: error };
   }
 
   // 根据执行引脚推进到下一个节点
@@ -514,7 +514,7 @@ export class GraphRunner {
     }
     const graphCtx = this.getGraphContext(this.currentGraphId);
     if (!graphCtx) {
-      this.failRuntime("Graph context missing.");
+      this.failRuntime("图上下文缺失。");
       return;
     }
     const edge = graphCtx.edgesByFrom.get(nodeId)?.get(execKey);
@@ -540,7 +540,7 @@ export class GraphRunner {
     }
     this.currentNodeId = null;
     this.status = "finished";
-    this.viewModel = { kind: "done", title: "Complete", body: "Graph finished." };
+    this.viewModel = { kind: "done", title: "完成", body: "流程已结束。" };
   }
 
   // 解析节点输入：沿数据边收集上游输出或默认值
@@ -564,13 +564,13 @@ export class GraphRunner {
           }
         }
         if (!upstreamOutputs || !(edge.from.pinKey in upstreamOutputs)) {
-          throw new Error(`Missing data for ${edge.from.nodeId}.${edge.from.pinKey}`);
+          throw new Error(`缺少数据：${edge.from.nodeId}.${edge.from.pinKey}`);
         }
         inputs[pin.key] = upstreamOutputs[edge.from.pinKey];
       } else if (pin.defaultValue !== undefined) {
         inputs[pin.key] = pin.defaultValue;
       } else if (pin.required) {
-        throw new Error(`Required input ${node.id}.${pin.key} is not connected.`);
+        throw new Error(`必填输入未连接：${node.id}.${pin.key}`);
       }
     }
     return inputs;
@@ -591,7 +591,7 @@ export class GraphRunner {
     const cached = this.dataCache[node.id];
     if (cached) return cached;
     if (visiting.has(node.id)) {
-      throw new Error(`Data dependency cycle detected at ${node.id}`);
+      throw new Error(`检测到数据依赖环：${node.id}`);
     }
     visiting.add(node.id);
     const startMs = performance.now();
@@ -604,7 +604,7 @@ export class GraphRunner {
       vars: this.vars,
     });
     if (result.deferred || result.latent) {
-      throw new Error(`Data node ${node.id} cannot be async.`);
+      throw new Error(`数据节点 ${node.id} 不能为异步。`);
     }
     if (result.error) {
       throw new Error(result.error);
@@ -714,7 +714,7 @@ export class GraphRunner {
   // 运行失败：进入错误状态并记录信息
   private failRuntime(message: string) {
     this.status = "error";
-    this.viewModel = { kind: "error", title: "Runtime Error", body: message };
+    this.viewModel = { kind: "error", title: "运行时错误", body: message };
     this.errors.push(message);
   }
 

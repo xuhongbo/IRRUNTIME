@@ -7,17 +7,17 @@ import { GameNodeDefinition } from "../../core/Node";
 export const WaitNode: GameNodeDefinition = {
   type: 'lifecycle.wait',
   version: 1,
-  category: 'Lifecycle',
-  title: 'Wait',
+  category: '生命周期',
+  title: '等待',
   inputs: [
     { name: 'exec', type: 'exec' },
-    { name: 'duration', type: 'number', label: 'Duration (ms)' }
+    { name: 'duration', type: 'number', label: '时长（毫秒）' }
   ],
   outputs: [
     { name: 'exec', type: 'exec' }
   ],
   properties: [
-    { name: 'duration', type: 'number', label: 'Duration (ms)', default: 1000 }
+    { name: 'duration', type: 'number', label: '时长（毫秒）', default: 1000 }
   ],
   execute: async (ctx) => {
     let duration = await ctx.getInput('duration');

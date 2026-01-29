@@ -7,14 +7,14 @@ import { GameNodeDefinition } from "../../core/Node";
 export const GetVarNode: GameNodeDefinition = {
   type: 'vars.get',
   version: 1,
-  category: 'Variables',
-  title: 'Get Variable',
+  category: '变量',
+  title: '读取变量',
   inputs: [],
   outputs: [
-    { name: 'value', type: 'any', label: 'Value' }
+    { name: 'value', type: 'any', label: '值' }
   ],
   properties: [
-    { name: 'name', type: 'string', label: 'Variable Name' }
+    { name: 'name', type: 'string', label: '变量名' }
   ],
   execute: async (ctx) => {
     const name = ctx.getProperty('name');
