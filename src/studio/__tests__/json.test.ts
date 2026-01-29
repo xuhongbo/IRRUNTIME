@@ -32,7 +32,7 @@ describe("json helpers", () => {
     const result = parseGraphJson("{ broken");
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toBe("Invalid JSON");
+      expect(result.error).toBe("JSON 无效");
     }
     spy.mockRestore();
   });

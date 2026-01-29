@@ -94,9 +94,9 @@ export const Inspector = ({
     }
     const contract = normalizeContract(graph.contract);
     const typeLabels: Record<string, string> = {
-      string: "String",
-      number: "Number",
-      boolean: "Boolean",
+      string: "字符串",
+      number: "数字",
+      boolean: "布尔",
       json: "JSON",
     };
     const options =
@@ -125,7 +125,7 @@ export const Inspector = ({
   if (!node || !def) {
     return (
       <Box sx={{ p: 4, textAlign: "center", color: "text.secondary", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }} data-testid="inspector-root">
-        <Typography variant="body2">Select a node to inspect</Typography>
+        <Typography variant="body2">请选择一个节点进行查看</Typography>
       </Box>
     );
   }
@@ -141,7 +141,7 @@ export const Inspector = ({
             const parsed = JSON.parse(raw);
             nextProps[field.key] = parsed;
           } catch (err) {
-            errors[field.key] = "Invalid JSON";
+            errors[field.key] = "JSON 无效";
           }
         }
       }
@@ -162,12 +162,12 @@ export const Inspector = ({
       <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider", bgcolor: "background.default" }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
             <Box>
-                <Typography variant="subtitle1" fontWeight={700}>{node.type}</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>{def.title}</Typography>
                 <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
-                    {node.id} <Typography component="span" variant="caption" sx={{ color: "text.disabled" }}>• v{node.version}</Typography>
+                    节点 ID：{node.id} <Typography component="span" variant="caption" sx={{ color: "text.disabled" }}>• v{node.version}</Typography>
                 </Typography>
             </Box>
-            <IconButton size="small" color="error" onClick={() => onDeleteNode(node.id)} title="Delete Node">
+            <IconButton size="small" color="error" onClick={() => onDeleteNode(node.id)} title="删除节点">
                 <DeleteOutlineIcon fontSize="small" />
             </IconButton>
         </Stack>
@@ -180,7 +180,7 @@ export const Inspector = ({
             fullWidth
             sx={{ mt: 2, borderColor: "divider" }}
         >
-            {hasBreakpoint ? "Breakpoint Active" : "Add Breakpoint"}
+            {hasBreakpoint ? "断点已启用" : "添加断点"}
         </Button>
       </Box>
 
@@ -196,9 +196,9 @@ export const Inspector = ({
            </Box>
         )}
 
-        <SectionHeader title="Properties">
+        <SectionHeader title="属性">
             <Stack spacing={2}>
-                {resolvedForm.length === 0 && <Typography variant="body2" color="text.secondary" fontStyle="italic">No configurable properties.</Typography>}
+                {resolvedForm.length === 0 && <Typography variant="body2" color="text.secondary" fontStyle="italic">暂无可配置属性。</Typography>}
                 {resolvedForm.map((field) => (
                 <FieldEditor
                     key={field.key}
@@ -212,18 +212,18 @@ export const Inspector = ({
                 ))}
                 {resolvedForm.length > 0 && (
                     <Button variant="contained" onClick={apply} fullWidth disableElevation>
-                        Apply Changes
+                        应用更改
                     </Button>
                 )}
             </Stack>
         </SectionHeader>
 
         {pinStatus && (
-             <SectionHeader title="Connections">
+             <SectionHeader title="连接">
                 <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
                     <Box>
-                         <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>INPUTS</Typography>
-                         {pinStatus.inputs.length === 0 && <Typography variant="caption" color="text.disabled">None</Typography>}
+                         <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>输入</Typography>
+                         {pinStatus.inputs.length === 0 && <Typography variant="caption" color="text.disabled">无</Typography>}
                          <Stack spacing={0.5}>
                             {pinStatus.inputs.map(pin => (
                                 <Box key={pin.key} sx={{ 
@@ -242,8 +242,8 @@ export const Inspector = ({
                          </Stack>
                     </Box>
                     <Box>
-                         <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>OUTPUTS</Typography>
-                         {pinStatus.outputs.length === 0 && <Typography variant="caption" color="text.disabled">None</Typography>}
+                         <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>输出</Typography>
+                         {pinStatus.outputs.length === 0 && <Typography variant="caption" color="text.disabled">无</Typography>}
                          <Stack spacing={0.5}>
                             {pinStatus.outputs.map(pin => (
                                 <Box key={pin.key} sx={{ 
@@ -266,15 +266,15 @@ export const Inspector = ({
         )}
         
         {io && (
-             <SectionHeader title="Last Execution" defaultOpen={false}>
+             <SectionHeader title="最近执行" defaultOpen={false}>
                  <Stack spacing={1}>
                      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                        <Typography variant="caption" color="text.secondary">Duration</Typography>
+                        <Typography variant="caption" color="text.secondary">耗时</Typography>
                         <Typography variant="caption" fontFamily="monospace">{io.durationMs.toFixed(2)}ms</Typography>
                      </Box>
                      <Divider />
                      <Box>
-                         <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Input Data</Typography>
+                         <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>输入数据</Typography>
                          <Box sx={{ bgcolor: "grey.50", p: 1, borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
                             <Typography variant="caption" fontFamily="monospace" component="pre" sx={{ m: 0, overflow: "auto" }}>
                                 {JSON.stringify(io.inputs, null, 2)}
@@ -282,7 +282,7 @@ export const Inspector = ({
                          </Box>
                      </Box>
                      <Box>
-                         <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Output Data</Typography>
+                         <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>输出数据</Typography>
                          <Box sx={{ bgcolor: "grey.50", p: 1, borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
                             <Typography variant="caption" fontFamily="monospace" component="pre" sx={{ m: 0, overflow: "auto" }}>
                                 {JSON.stringify(io.outputs, null, 2)}

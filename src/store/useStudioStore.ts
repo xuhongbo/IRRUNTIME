@@ -85,7 +85,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       });
       return { ok: true };
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Invalid JSON";
+      const message = err instanceof Error ? err.message : "JSON 无效";
       set((state) => ({ json: { ...state.json, error: message } }));
       return { ok: false, error: message };
     }

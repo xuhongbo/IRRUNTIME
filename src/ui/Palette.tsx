@@ -160,7 +160,7 @@ export const Palette = ({ graph, registry, center, onAddNode }: PaletteProps) =>
                 </ListItemIcon>
                 <ListItemText
                   primary={item.title}
-                  secondary={item.type}
+                  secondary={`版本：v${item.version}`}
                   primaryTypographyProps={{ variant: "body2", fontWeight: 500, color: "text.primary" }}
                   secondaryTypographyProps={{ variant: "caption", color: "text.secondary", fontFamily: "monospace" }}
                 />
@@ -194,7 +194,7 @@ export const Palette = ({ graph, registry, center, onAddNode }: PaletteProps) =>
                     </ListItemIcon>
                     <ListItemText
                       primary={item.title}
-                      secondary={item.type}
+                      secondary={`版本：v${item.version}`}
                       primaryTypographyProps={{ variant: "body2", fontWeight: 500, color: "text.primary" }}
                       secondaryTypographyProps={{ variant: "caption", color: "text.secondary", fontFamily: "monospace" }}
                     />

@@ -46,7 +46,7 @@ export const lintGraph = (graph: Graph): LintIssue[] => {
         id: `no-in-${node.id}`,
         nodeId: node.id,
         severity: "warning",
-        message: "Node has no incoming exec connection.",
+        message: "节点缺少进入的执行连线。",
       });
     }
     if (node.type !== "End" && stats.outExec === 0) {
@@ -54,7 +54,7 @@ export const lintGraph = (graph: Graph): LintIssue[] => {
         id: `no-out-${node.id}`,
         nodeId: node.id,
         severity: "warning",
-        message: "Node has no outgoing exec connection.",
+        message: "节点缺少输出的执行连线。",
       });
     }
     if (stats.inExec === 0 && stats.outExec === 0 && node.type !== "Start" && node.type !== "End") {
@@ -62,9 +62,9 @@ export const lintGraph = (graph: Graph): LintIssue[] => {
         id: `isolated-${node.id}`,
         nodeId: node.id,
         severity: "info",
-        message: "Node is isolated.",
+        message: "节点是孤立状态。",
         fix: {
-          label: "Remove node",
+          label: "移除节点",
           commands: [{ type: "DELETE_NODE", nodeId: node.id }],
         },
       });

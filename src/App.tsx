@@ -116,6 +116,15 @@ const StudioApp = () => {
   const contract = useMemo(() => normalizeContract(graph.contract), [graph.contract]);
   const presets = useMemo(() => graph.presets ?? [], [graph.presets]);
   const lintIssues = useMemo(() => lintGraph(graph), [graph]);
+  const runtimeStatusLabelMap: Record<string, string> = {
+    idle: "空闲",
+    running: "运行中",
+    waiting: "等待中",
+    paused: "已暂停",
+    error: "出错",
+    finished: "已完成",
+  };
+  const runtimeStatusLabel = runtimeStatusLabelMap[snapshot.status] ?? snapshot.status;
 
   // ... (Hook logic remains unchanged)
   // 根据契约生成默认输入（用于运行面板的初始值）
@@ -663,7 +672,7 @@ const StudioApp = () => {
               运行
             </Button>
             <Chip
-              label={snapshot.status}
+              label={runtimeStatusLabel}
               color={snapshot.status === "running" ? "primary" : "default"}
               variant="outlined"
               size="small"

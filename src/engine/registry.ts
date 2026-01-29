@@ -101,12 +101,12 @@ export type Registry = {
 const startNode: NodeDefinition = {
   type: "Start",
   version: 1,
-  title: "Start",
-  description: "Entry point of a graph.",
+  title: "开始",
+  description: "流程入口。",
   category: "入口",
   doc: { summary: "图执行入口。" },
   inputs: [],
-  outputs: [{ key: "next", label: "Next", kind: "exec" }],
+  outputs: [{ key: "next", label: "下一步", kind: "exec" }],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
   form: [],
@@ -117,11 +117,11 @@ const startNode: NodeDefinition = {
 const endNode: NodeDefinition = {
   type: "End",
   version: 1,
-  title: "End",
-  description: "Terminate execution.",
+  title: "结束",
+  description: "终止执行。",
   category: "入口",
   doc: { summary: "图执行终点。" },
-  inputs: [{ key: "in", label: "In", kind: "exec" }],
+  inputs: [{ key: "in", label: "进入", kind: "exec" }],
   outputs: [],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
@@ -129,7 +129,7 @@ const endNode: NodeDefinition = {
   run: () => ({
     data: {},
     exec: undefined,
-    viewModel: { kind: "done", title: "Complete", body: "Graph finished." },
+    viewModel: { kind: "done", title: "完成", body: "流程已结束。" },
   }),
 };
 
@@ -137,21 +137,21 @@ const endNode: NodeDefinition = {
 const graphInputNode: NodeDefinition = {
   type: "GraphInput",
   version: 1,
-  title: "Graph Input",
-  description: "Expose a typed graph input value.",
+  title: "图输入",
+  description: "暴露图输入值。",
   category: "流程",
   doc: { summary: "读取图输入并输出值。" },
   inputs: [],
-  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "json", required: true }],
+  outputs: [{ key: "value", label: "值", kind: "data", dataType: "json", required: true }],
   propsSchema: z.object({ name: z.string().default("") }).strict(),
   defaultProps: { name: "" },
   form: [
     {
       key: "name",
-      label: "Input Name",
+      label: "输入名称",
       type: "select",
       options: [],
-      placeholder: "Select contract input",
+      placeholder: "选择合约输入",
     },
   ],
   run: (ctx) => ({
@@ -159,8 +159,8 @@ const graphInputNode: NodeDefinition = {
     exec: undefined,
     viewModel: {
       kind: "text",
-      title: "Graph Input",
-      body: `Input ${String(ctx.props.name ?? "")} read.`,
+      title: "图输入",
+      body: `输入 ${String(ctx.props.name ?? "")} 已读取。`,
     },
   }),
 };
@@ -169,24 +169,24 @@ const graphInputNode: NodeDefinition = {
 const graphOutputNode: NodeDefinition = {
   type: "GraphOutput",
   version: 1,
-  title: "Graph Output",
-  description: "Capture a typed graph output value.",
+  title: "图输出",
+  description: "写入图输出值。",
   category: "流程",
   doc: { summary: "将输入写入图输出。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "json", required: true },
+    { key: "in", label: "进入", kind: "exec" },
+    { key: "value", label: "值", kind: "data", dataType: "json", required: true },
   ],
-  outputs: [{ key: "out", label: "Out", kind: "exec" }],
+  outputs: [{ key: "out", label: "输出", kind: "exec" }],
   propsSchema: z.object({ name: z.string().default("") }).strict(),
   defaultProps: { name: "" },
   form: [
     {
       key: "name",
-      label: "Output Name",
+      label: "输出名称",
       type: "select",
       options: [],
-      placeholder: "Select contract output",
+      placeholder: "选择合约输出",
     },
   ],
   run: (ctx) => ({
@@ -194,8 +194,8 @@ const graphOutputNode: NodeDefinition = {
     exec: "out",
     viewModel: {
       kind: "text",
-      title: "Graph Output",
-      body: `Output ${String(ctx.props.name ?? "")} captured.`,
+      title: "图输出",
+      body: `输出 ${String(ctx.props.name ?? "")} 已写入。`,
     },
   }),
 };
@@ -204,18 +204,18 @@ const graphOutputNode: NodeDefinition = {
 const scriptNode: NodeDefinition = {
   type: "Script",
   version: 1,
-  title: "Script",
-  description: "Execute a sandboxed script with deterministic utilities.",
+  title: "脚本",
+  description: "使用确定性工具执行沙箱脚本。",
   category: "脚本",
   doc: { summary: "执行沙箱脚本并输出结果。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "input", label: "Input", kind: "data", dataType: "json", required: false },
+    { key: "in", label: "进入", kind: "exec" },
+    { key: "input", label: "输入", kind: "data", dataType: "json", required: false },
   ],
   outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "onError", label: "On Error", kind: "exec" },
-    { key: "output", label: "Output", kind: "data", dataType: "json" },
+    { key: "out", label: "输出", kind: "exec" },
+    { key: "onError", label: "错误", kind: "exec" },
+    { key: "output", label: "结果", kind: "data", dataType: "json" },
   ],
   propsSchema: z
     .object({
@@ -234,11 +234,11 @@ const scriptNode: NodeDefinition = {
     maxLogChars: 500,
   },
   form: [
-    { key: "code", label: "Code", type: "textarea" },
-    { key: "timeoutMs", label: "Timeout (ms)", type: "number" },
-    { key: "maxOutputSize", label: "Max Output (chars)", type: "number" },
-    { key: "maxLogEntries", label: "Max Logs", type: "number" },
-    { key: "maxLogChars", label: "Max Log Size", type: "number" },
+    { key: "code", label: "脚本代码", type: "textarea" },
+    { key: "timeoutMs", label: "超时（毫秒）", type: "number" },
+    { key: "maxOutputSize", label: "最大输出长度（字符）", type: "number" },
+    { key: "maxLogEntries", label: "最大日志条数", type: "number" },
+    { key: "maxLogChars", label: "最大日志长度", type: "number" },
   ],
   run: (ctx) => {
     const code = String(ctx.props.code ?? "");
@@ -259,7 +259,7 @@ const scriptNode: NodeDefinition = {
     }).then((result) => ({
       data: { output: result.data.output ?? result.data },
       exec: "out",
-      viewModel: { kind: "text", title: "Script", body: "Script executed." },
+      viewModel: { kind: "text", title: "脚本", body: "脚本已执行。" },
       logs: result.logs,
     }));
     return { data: {}, deferred };
@@ -270,18 +270,18 @@ const scriptNode: NodeDefinition = {
 const setVarNode: NodeDefinition = {
   type: "SetVar",
   version: 1,
-  title: "Set Variable",
-  description: "Write a value into the runtime variable store.",
+  title: "设置变量",
+  description: "写入运行时变量。",
   category: "变量",
   doc: { summary: "写入运行时变量。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "name", label: "Name", kind: "data", dataType: "string", required: true },
-    { key: "value", label: "Value", kind: "data", dataType: "json", required: true },
+    { key: "in", label: "进入", kind: "exec" },
+    { key: "name", label: "名称", kind: "data", dataType: "string", required: true },
+    { key: "value", label: "值", kind: "data", dataType: "json", required: true },
   ],
   outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "json" },
+    { key: "out", label: "输出", kind: "exec" },
+    { key: "value", label: "值", kind: "data", dataType: "json" },
   ],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
@@ -293,15 +293,15 @@ const setVarNode: NodeDefinition = {
       return {
         data: {},
         exec: "out",
-        error: "Variable name is required.",
-        viewModel: { kind: "error", title: "SetVar", body: "Variable name is required." },
+        error: "变量名不能为空。",
+        viewModel: { kind: "error", title: "设置变量", body: "变量名不能为空。" },
       };
     }
     ctx.vars[name] = ctx.inputs.value;
     return {
       data: { value: ctx.inputs.value },
       exec: "out",
-      viewModel: { kind: "text", title: "SetVar", body: `var ${name} updated.` },
+      viewModel: { kind: "text", title: "设置变量", body: `变量 ${name} 已更新。` },
     };
   },
 };
@@ -310,17 +310,17 @@ const setVarNode: NodeDefinition = {
 const getVarNode: NodeDefinition = {
   type: "GetVar",
   version: 1,
-  title: "Get Variable",
-  description: "Read a value from the runtime variable store.",
+  title: "读取变量",
+  description: "读取运行时变量。",
   category: "变量",
   doc: { summary: "读取运行时变量。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "name", label: "Name", kind: "data", dataType: "string", required: true },
+    { key: "in", label: "进入", kind: "exec" },
+    { key: "name", label: "名称", kind: "data", dataType: "string", required: true },
   ],
   outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "value", label: "Value", kind: "data", dataType: "json" },
+    { key: "out", label: "输出", kind: "exec" },
+    { key: "value", label: "值", kind: "data", dataType: "json" },
   ],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
@@ -332,14 +332,14 @@ const getVarNode: NodeDefinition = {
       return {
         data: { value: undefined },
         exec: "out",
-        error: "Variable name is required.",
-        viewModel: { kind: "error", title: "GetVar", body: "Variable name is required." },
+        error: "变量名不能为空。",
+        viewModel: { kind: "error", title: "读取变量", body: "变量名不能为空。" },
       };
     }
     return {
       data: { value: ctx.vars[name] },
       exec: "out",
-      viewModel: { kind: "text", title: "GetVar", body: `var ${name} read.` },
+      viewModel: { kind: "text", title: "读取变量", body: `变量 ${name} 已读取。` },
     };
   },
 };
@@ -348,17 +348,17 @@ const getVarNode: NodeDefinition = {
 const ifNode: NodeDefinition = {
   type: "If",
   version: 1,
-  title: "If",
-  description: "Branch based on a boolean condition.",
+  title: "条件判断",
+  description: "根据布尔条件进行分支。",
   category: "逻辑",
   doc: { summary: "基于条件分支执行。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "condition", label: "Condition", kind: "data", dataType: "boolean", required: true },
+    { key: "in", label: "进入", kind: "exec" },
+    { key: "condition", label: "条件", kind: "data", dataType: "boolean", required: true },
   ],
   outputs: [
-    { key: "then", label: "Then", kind: "exec" },
-    { key: "else", label: "Else", kind: "exec" },
+    { key: "then", label: "成立", kind: "exec" },
+    { key: "else", label: "否则", kind: "exec" },
   ],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
@@ -370,8 +370,8 @@ const ifNode: NodeDefinition = {
       exec: condition ? "then" : "else",
       viewModel: {
         kind: "text",
-        title: "If",
-        body: `Condition evaluated to ${condition ? "true" : "false"}.`,
+        title: "条件判断",
+        body: `条件结果为 ${condition ? "真" : "假"}。`,
       },
     };
   },
@@ -381,18 +381,18 @@ const ifNode: NodeDefinition = {
 const equalsNode: NodeDefinition = {
   type: "Equals",
   version: 1,
-  title: "Equals",
-  description: "Compare two values for strict equality.",
+  title: "相等比较",
+  description: "比较两个值是否严格相等。",
   category: "逻辑",
   doc: { summary: "比较两个值是否相等。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
+    { key: "in", label: "进入", kind: "exec" },
     { key: "a", label: "A", kind: "data", dataType: "json", required: true },
     { key: "b", label: "B", kind: "data", dataType: "json", required: true },
   ],
   outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "isEqual", label: "Is Equal", kind: "data", dataType: "boolean" },
+    { key: "out", label: "输出", kind: "exec" },
+    { key: "isEqual", label: "是否相等", kind: "data", dataType: "boolean" },
   ],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
@@ -402,8 +402,8 @@ const equalsNode: NodeDefinition = {
     exec: "out",
     viewModel: {
       kind: "text",
-      title: "Equals",
-      body: `Compared values -> ${ctx.inputs.a === ctx.inputs.b ? "equal" : "not equal"}.`,
+      title: "相等比较",
+      body: `比较结果：${ctx.inputs.a === ctx.inputs.b ? "相等" : "不相等"}。`,
     },
   }),
 };
@@ -412,18 +412,18 @@ const equalsNode: NodeDefinition = {
 const constStringNode: NodeDefinition = {
   type: "ConstString",
   version: 1,
-  title: "Const String",
-  description: "Emit a string literal.",
+  title: "字符串常量",
+  description: "输出字符串常量。",
   category: "常量",
   doc: { summary: "输出字符串常量。" },
   inputs: [],
-  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "string" }],
+  outputs: [{ key: "value", label: "值", kind: "data", dataType: "string" }],
   propsSchema: z.object({ value: z.string().default("") }).strict(),
   defaultProps: { value: "" },
-  form: [{ key: "value", label: "Value", type: "string" }],
+  form: [{ key: "value", label: "值", type: "string" }],
   run: (ctx) => ({
     data: { value: String(ctx.props.value ?? "") },
-    viewModel: { kind: "text", title: "Const", body: "String literal emitted." },
+    viewModel: { kind: "text", title: "常量", body: "字符串常量已输出。" },
   }),
 };
 
@@ -431,18 +431,18 @@ const constStringNode: NodeDefinition = {
 const constNumberNode: NodeDefinition = {
   type: "ConstNumber",
   version: 1,
-  title: "Const Number",
-  description: "Emit a number literal.",
+  title: "数字常量",
+  description: "输出数字常量。",
   category: "常量",
   doc: { summary: "输出数字常量。" },
   inputs: [],
-  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "number" }],
+  outputs: [{ key: "value", label: "值", kind: "data", dataType: "number" }],
   propsSchema: z.object({ value: z.number().default(0) }).strict(),
   defaultProps: { value: 0 },
-  form: [{ key: "value", label: "Value", type: "number" }],
+  form: [{ key: "value", label: "值", type: "number" }],
   run: (ctx) => ({
     data: { value: Number(ctx.props.value ?? 0) },
-    viewModel: { kind: "text", title: "Const", body: "Number literal emitted." },
+    viewModel: { kind: "text", title: "常量", body: "数字常量已输出。" },
   }),
 };
 
@@ -450,18 +450,18 @@ const constNumberNode: NodeDefinition = {
 const constBooleanNode: NodeDefinition = {
   type: "ConstBoolean",
   version: 1,
-  title: "Const Boolean",
-  description: "Emit a boolean literal.",
+  title: "布尔常量",
+  description: "输出布尔常量。",
   category: "常量",
   doc: { summary: "输出布尔常量。" },
   inputs: [],
-  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "boolean" }],
+  outputs: [{ key: "value", label: "值", kind: "data", dataType: "boolean" }],
   propsSchema: z.object({ value: z.boolean().default(false) }).strict(),
   defaultProps: { value: false },
-  form: [{ key: "value", label: "Value", type: "boolean" }],
+  form: [{ key: "value", label: "值", type: "boolean" }],
   run: (ctx) => ({
     data: { value: Boolean(ctx.props.value) },
-    viewModel: { kind: "text", title: "Const", body: "Boolean literal emitted." },
+    viewModel: { kind: "text", title: "常量", body: "布尔常量已输出。" },
   }),
 };
 
@@ -469,18 +469,18 @@ const constBooleanNode: NodeDefinition = {
 const constJsonNode: NodeDefinition = {
   type: "ConstJson",
   version: 1,
-  title: "Const JSON",
-  description: "Emit a JSON literal.",
+  title: "JSON 常量",
+  description: "输出 JSON 常量。",
   category: "常量",
   doc: { summary: "输出 JSON 常量。" },
   inputs: [],
-  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "json" }],
+  outputs: [{ key: "value", label: "值", kind: "data", dataType: "json" }],
   propsSchema: z.object({ value: z.unknown() }).strict(),
   defaultProps: { value: { sample: true } },
-  form: [{ key: "value", label: "Value", type: "json" }],
+  form: [{ key: "value", label: "值", type: "json" }],
   run: (ctx) => ({
     data: { value: ctx.props.value },
-    viewModel: { kind: "text", title: "Const", body: "JSON literal emitted." },
+    viewModel: { kind: "text", title: "常量", body: "JSON 常量已输出。" },
   }),
 };
 
@@ -488,23 +488,23 @@ const constJsonNode: NodeDefinition = {
 const toNumberNode: NodeDefinition = {
   type: "ToNumber",
   version: 1,
-  title: "To Number",
-  description: "Convert a JSON value into a number.",
+  title: "转为数字",
+  description: "将 JSON 值转换为数字。",
   category: "转换",
   doc: { summary: "将输入转换为数字。" },
-  inputs: [{ key: "value", label: "Value", kind: "data", dataType: "json", required: true }],
-  outputs: [{ key: "number", label: "Number", kind: "data", dataType: "number" }],
+  inputs: [{ key: "value", label: "值", kind: "data", dataType: "json", required: true }],
+  outputs: [{ key: "number", label: "数字", kind: "data", dataType: "number" }],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
   form: [],
   run: (ctx) => {
     const num = Number(ctx.inputs.value);
     if (Number.isNaN(num)) {
-      throw new Error("Value cannot be converted to number.");
+      throw new Error("值无法转换为数字。");
     }
     return {
       data: { number: num },
-      viewModel: { kind: "text", title: "ToNumber", body: `Converted to ${num}.` },
+      viewModel: { kind: "text", title: "转为数字", body: `已转换为 ${num}。` },
     };
   },
 };
@@ -513,18 +513,18 @@ const toNumberNode: NodeDefinition = {
 const toStringNode: NodeDefinition = {
   type: "ToString",
   version: 1,
-  title: "To String",
-  description: "Convert a JSON value into a string.",
+  title: "转为字符串",
+  description: "将 JSON 值转换为字符串。",
   category: "转换",
   doc: { summary: "将输入转换为字符串。" },
-  inputs: [{ key: "value", label: "Value", kind: "data", dataType: "json", required: true }],
-  outputs: [{ key: "text", label: "Text", kind: "data", dataType: "string" }],
+  inputs: [{ key: "value", label: "值", kind: "data", dataType: "json", required: true }],
+  outputs: [{ key: "text", label: "文本", kind: "data", dataType: "string" }],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
   form: [],
   run: (ctx) => ({
     data: { text: String(ctx.inputs.value ?? "") },
-    viewModel: { kind: "text", title: "ToString", body: "Converted to string." },
+    viewModel: { kind: "text", title: "转为字符串", body: "已转换为字符串。" },
   }),
 };
 
@@ -532,30 +532,30 @@ const toStringNode: NodeDefinition = {
 const showTextNodeV2: NodeDefinition = {
   type: "ShowText",
   version: 2,
-  title: "Show Text",
-  description: "Display a message and wait for user NEXT.",
+  title: "展示文本",
+  description: "展示消息并等待用户继续。",
   category: "交互",
   doc: { summary: "展示文本并等待继续。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "text", label: "Text", kind: "data", dataType: "string", required: true },
+    { key: "in", label: "进入", kind: "exec" },
+    { key: "text", label: "文本", kind: "data", dataType: "string", required: true },
   ],
-  outputs: [{ key: "out", label: "Out", kind: "exec" }],
+  outputs: [{ key: "out", label: "输出", kind: "exec" }],
   propsSchema: z
     .object({
-      title: z.string().default("Message"),
+      title: z.string().default("消息"),
     })
     .strict(),
-  defaultProps: { title: "Message" },
+  defaultProps: { title: "消息" },
   form: [
-    { key: "title", label: "Title", type: "string", placeholder: "Panel title" },
+    { key: "title", label: "标题", type: "string", placeholder: "面板标题" },
   ],
   run: (ctx) => ({
     data: {},
     exec: "out",
     viewModel: {
       kind: "text",
-      title: String(ctx.props.title ?? "Message"),
+      title: String(ctx.props.title ?? "消息"),
       body: String(ctx.inputs.text ?? ""),
     },
     latent: { kind: "next", resumeExec: "out" },
@@ -566,44 +566,44 @@ const showTextNodeV2: NodeDefinition = {
 const waitChoiceNode: NodeDefinition = {
   type: "WaitForChoice",
   version: 1,
-  title: "Wait For Choice",
-  description: "Pause execution until the user selects a choice.",
+  title: "等待选择",
+  description: "暂停执行直到用户做出选择。",
   category: "交互",
   doc: { summary: "等待用户选择分支。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "prompt", label: "Prompt", kind: "data", dataType: "string", required: true },
+    { key: "in", label: "进入", kind: "exec" },
+    { key: "prompt", label: "提示文本", kind: "data", dataType: "string", required: true },
   ],
   outputs: [
-    { key: "choiceA", label: "Choice A", kind: "exec" },
-    { key: "choiceB", label: "Choice B", kind: "exec" },
-    { key: "choice", label: "Choice", kind: "data", dataType: "string" },
+    { key: "choiceA", label: "选项 A", kind: "exec" },
+    { key: "choiceB", label: "选项 B", kind: "exec" },
+    { key: "choice", label: "选择", kind: "data", dataType: "string" },
   ],
   propsSchema: z
     .object({
-      choiceALabel: z.string().default("Continue"),
-      choiceBLabel: z.string().default("Trigger Error"),
+      choiceALabel: z.string().default("继续"),
+      choiceBLabel: z.string().default("触发错误"),
     })
     .strict(),
-  defaultProps: { choiceALabel: "Continue", choiceBLabel: "Trigger Error" },
+  defaultProps: { choiceALabel: "继续", choiceBLabel: "触发错误" },
   form: [
-    { key: "choiceALabel", label: "Choice A Label", type: "string" },
-    { key: "choiceBLabel", label: "Choice B Label", type: "string" },
+    { key: "choiceALabel", label: "选项 A 文案", type: "string" },
+    { key: "choiceBLabel", label: "选项 B 文案", type: "string" },
   ],
   run: (ctx) => {
     const choiceA: ChoiceOption = {
       key: "choiceA",
-      label: String(ctx.props.choiceALabel ?? "Continue"),
+      label: String(ctx.props.choiceALabel ?? "继续"),
     };
     const choiceB: ChoiceOption = {
       key: "choiceB",
-      label: String(ctx.props.choiceBLabel ?? "Trigger Error"),
+      label: String(ctx.props.choiceBLabel ?? "触发错误"),
     };
     return {
       data: {},
       viewModel: {
         kind: "choice",
-        title: "Make a Choice",
+        title: "请选择",
         body: String(ctx.inputs.prompt ?? ""),
         choices: [choiceA, choiceB],
       },
@@ -627,15 +627,15 @@ const waitChoiceNode: NodeDefinition = {
 const delayNode: NodeDefinition = {
   type: "Delay",
   version: 1,
-  title: "Delay",
-  description: "Pause execution for a duration before continuing.",
+  title: "延迟",
+  description: "暂停执行指定时长后继续。",
   category: "时间",
   doc: { summary: "延迟指定时间后继续。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
-    { key: "ms", label: "Milliseconds", kind: "data", dataType: "number", required: true },
+    { key: "in", label: "进入", kind: "exec" },
+    { key: "ms", label: "毫秒", kind: "data", dataType: "number", required: true },
   ],
-  outputs: [{ key: "out", label: "Out", kind: "exec" }],
+  outputs: [{ key: "out", label: "输出", kind: "exec" }],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
   form: [],
@@ -646,8 +646,8 @@ const delayNode: NodeDefinition = {
       exec: "out",
       viewModel: {
         kind: "waiting",
-        title: "Delay",
-        body: `Waiting ${ms} ms...`,
+        title: "延迟",
+        body: `等待 ${ms} 毫秒...`,
       },
       latent: { kind: "delay", ms, resumeExec: "out" },
     };
@@ -658,12 +658,12 @@ const delayNode: NodeDefinition = {
 const expressionNode: NodeDefinition = {
   type: "Expression",
   version: 1,
-  title: "Expression",
-  description: "Evaluate a lightweight expression with inputs and vars.",
+  title: "表达式",
+  description: "使用输入与变量执行轻量表达式。",
   category: "脚本",
   doc: { summary: "执行轻量表达式。" },
-  inputs: [{ key: "input", label: "Input", kind: "data", dataType: "json", required: false }],
-  outputs: [{ key: "value", label: "Value", kind: "data", dataType: "json" }],
+  inputs: [{ key: "input", label: "输入", kind: "data", dataType: "json", required: false }],
+  outputs: [{ key: "value", label: "值", kind: "data", dataType: "json" }],
   propsSchema: z
     .object({
       expression: z.string().default("inputs.input"),
@@ -681,16 +681,16 @@ const expressionNode: NodeDefinition = {
     maxLogChars: 300,
   },
   form: [
-    { key: "expression", label: "Expression", type: "textarea" },
-    { key: "timeoutMs", label: "Timeout (ms)", type: "number" },
+    { key: "expression", label: "表达式", type: "textarea" },
+    { key: "timeoutMs", label: "超时（毫秒）", type: "number" },
   ],
   run: (ctx) => {
     const expression = String(ctx.props.expression ?? "");
     if (!expression.trim()) {
       return {
         data: { value: null },
-        error: "Expression is empty.",
-        viewModel: { kind: "error", title: "Expression", body: "Expression is empty." },
+        error: "表达式为空。",
+        viewModel: { kind: "error", title: "表达式", body: "表达式为空。" },
       };
     }
     const code = `return { value: (${expression}) };`;
@@ -706,7 +706,7 @@ const expressionNode: NodeDefinition = {
     });
     return {
       data: { value: result.data.value },
-      viewModel: { kind: "text", title: "Expression", body: "Expression evaluated." },
+      viewModel: { kind: "text", title: "表达式", body: "表达式已计算。" },
       logs: result.logs,
     };
   },
@@ -716,19 +716,19 @@ const expressionNode: NodeDefinition = {
 const divideNode: NodeDefinition = {
   type: "Divide",
   version: 1,
-  title: "Divide",
-  description: "Divide A by B. Throws error on division by zero.",
+  title: "除法",
+  description: "执行 A/B，除零时抛出错误。",
   category: "逻辑",
   doc: { summary: "执行除法并处理除零。" },
   inputs: [
-    { key: "in", label: "In", kind: "exec" },
+    { key: "in", label: "进入", kind: "exec" },
     { key: "a", label: "A", kind: "data", dataType: "number", required: true },
     { key: "b", label: "B", kind: "data", dataType: "number", required: true },
   ],
   outputs: [
-    { key: "out", label: "Out", kind: "exec" },
-    { key: "onError", label: "On Error", kind: "exec" },
-    { key: "result", label: "Result", kind: "data", dataType: "number" },
+    { key: "out", label: "输出", kind: "exec" },
+    { key: "onError", label: "错误", kind: "exec" },
+    { key: "result", label: "结果", kind: "data", dataType: "number" },
   ],
   propsSchema: z.object({}).strict(),
   defaultProps: {},
@@ -737,14 +737,14 @@ const divideNode: NodeDefinition = {
     const a = Number(ctx.inputs.a ?? 0);
     const b = Number(ctx.inputs.b ?? 0);
     if (b === 0) {
-      throw new Error("Division by zero");
+      throw new Error("除数不能为 0");
     }
     return {
       data: { result: a / b },
       exec: "out",
       viewModel: {
         kind: "text",
-        title: "Divide",
+        title: "除法",
         body: `${a} / ${b} = ${a / b}`,
       },
     };
@@ -755,12 +755,12 @@ const divideNode: NodeDefinition = {
 const subgraphNode: NodeDefinition = {
   type: "Subgraph",
   version: 1,
-  title: "Subgraph",
-  description: "Invoke a nested subgraph by id.",
+  title: "子图",
+  description: "按 ID 调用子图。",
   category: "子图",
   doc: { summary: "调用子图执行。" },
-  inputs: [{ key: "in", label: "In", kind: "exec" }],
-  outputs: [{ key: "out", label: "Out", kind: "exec" }],
+  inputs: [{ key: "in", label: "进入", kind: "exec" }],
+  outputs: [{ key: "out", label: "输出", kind: "exec" }],
   propsSchema: z
     .object({
       subgraphId: z.string().min(1),
@@ -768,15 +768,15 @@ const subgraphNode: NodeDefinition = {
     .strict(),
   defaultProps: { subgraphId: "" },
   form: [
-    { key: "subgraphId", label: "Subgraph Id", type: "string" },
+    { key: "subgraphId", label: "子图 ID", type: "string" },
   ],
   run: (ctx) => ({
     data: {},
     exec: "out",
     viewModel: {
       kind: "text",
-      title: "Subgraph",
-      body: `Entering subgraph ${String(ctx.props.subgraphId ?? "")}.`,
+      title: "子图",
+      body: `进入子图 ${String(ctx.props.subgraphId ?? "")}。`,
     },
     subgraph: { graphId: String(ctx.props.subgraphId ?? "") },
   }),
@@ -811,7 +811,7 @@ const definitions: NodeDefinition[] = [
 const migrations: Record<string, Record<number, (props: Record<string, unknown>) => Record<string, unknown>>> = {
   ShowText: {
     1: (props) => ({
-      title: typeof props.label === "string" ? props.label : "Message",
+      title: typeof props.label === "string" ? props.label : "消息",
     }),
   },
 };

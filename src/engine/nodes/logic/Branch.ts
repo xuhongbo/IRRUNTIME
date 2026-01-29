@@ -7,18 +7,18 @@ import { GameNodeDefinition } from "../../core/Node";
 export const IfNode: GameNodeDefinition = {
   type: 'logic.if',
   version: 1,
-  category: 'Logic',
-  title: 'If / Branch',
+  category: '逻辑',
+  title: '条件分支',
   inputs: [
     { name: 'exec', type: 'exec' },
-    { name: 'condition', type: 'boolean', label: 'Condition' }
+    { name: 'condition', type: 'boolean', label: '条件' }
   ],
   outputs: [
-    { name: 'true', type: 'exec', label: 'True' },
-    { name: 'false', type: 'exec', label: 'False' }
+    { name: 'true', type: 'exec', label: '是' },
+    { name: 'false', type: 'exec', label: '否' }
   ],
   properties: [
-     { name: 'condition', type: 'boolean', label: 'Default Condition', default: false }
+     { name: 'condition', type: 'boolean', label: '默认条件', default: false }
   ],
   execute: async (ctx) => {
     let condition = await ctx.getInput('condition');

@@ -13,7 +13,7 @@ const presets = [{ id: "p1", title: "预设", inputs: {} }];
 describe("GraphSettings", () => {
   it("applies contract updates", () => {
     const onApplyContract = jest.fn();
-    const { getByText, getAllByPlaceholderText } = render(
+    const { getByText, getAllByLabelText } = render(
       <GraphSettings
         contract={contract}
         inputValues={{}}
@@ -23,7 +23,7 @@ describe("GraphSettings", () => {
         onApplyPresets={() => null}
       />
     );
-    const nameInputs = getAllByPlaceholderText("名称");
+    const nameInputs = getAllByLabelText("名称");
     fireEvent.change(nameInputs[0], { target: { value: "total" } });
     fireEvent.click(getByText("应用合约"));
     expect(onApplyContract).toHaveBeenCalled();
@@ -33,7 +33,7 @@ describe("GraphSettings", () => {
 
   it("parses examples array", () => {
     const onApplyContract = jest.fn();
-    const { getAllByPlaceholderText, getByText } = render(
+    const { getAllByLabelText, getByText } = render(
       <GraphSettings
         contract={contract}
         inputValues={{}}
@@ -43,7 +43,7 @@ describe("GraphSettings", () => {
         onApplyPresets={() => null}
       />
     );
-    const examples = getAllByPlaceholderText("示例（JSON 数组）")[0];
+    const examples = getAllByLabelText("示例（JSON 数组）")[0];
     fireEvent.change(examples, { target: { value: "[1,2]" } });
     fireEvent.click(getByText("应用合约"));
     const next = onApplyContract.mock.calls[0][0];
@@ -52,7 +52,7 @@ describe("GraphSettings", () => {
 
   it("applies input values", () => {
     const onChangeInputs = jest.fn();
-    const { getByText, getByPlaceholderText } = render(
+    const { getByText, getByLabelText } = render(
       <GraphSettings
         contract={contract}
         inputValues={{ count: 0 }}
@@ -62,7 +62,7 @@ describe("GraphSettings", () => {
         onApplyPresets={() => null}
       />
     );
-    const input = getByPlaceholderText("数字");
+    const input = getByLabelText("count (数字)");
     fireEvent.change(input, { target: { value: "42" } });
     fireEvent.click(getByText("应用输入"));
     expect(onChangeInputs).toHaveBeenCalledWith({ count: 42 });

@@ -110,11 +110,11 @@ export const GraphViewer = ({
             <Typography variant="subtitle2" color="text.secondary" fontWeight={600}>
                 {graph.id}
             </Typography>
-            <Chip size="small" label={`${graph.nodes.length} nodes`} variant="outlined" sx={{ height: 20, fontSize: "0.65rem", borderColor: "divider" }} />
+            <Chip size="small" label={`${graph.nodes.length} 个节点`} variant="outlined" sx={{ height: 20, fontSize: "0.65rem", borderColor: "divider" }} />
         </Stack>
         <Divider orientation="vertical" flexItem />
         <ToggleButtonGroup size="small" exclusive>
-          <Tooltip title="Snap to Grid">
+          <Tooltip title="吸附到网格">
             <ToggleButton value="snap" selected={snapToGrid} onChange={onToggleSnap} sx={{ border: "none" }}>
                {snapToGrid ? <GridOnIcon fontSize="small" /> : <GridOffIcon fontSize="small" />}
             </ToggleButton>
@@ -124,22 +124,22 @@ export const GraphViewer = ({
         <Divider orientation="vertical" flexItem />
         
         <ToggleButtonGroup size="small" sx={{ border: "none" }}>
-            <Tooltip title="Align Left"><ToggleButton value="left" onClick={() => onAlign?.("left")} sx={{ border: "none" }}><AlignHorizontalLeftIcon fontSize="small"/></ToggleButton></Tooltip>
-            <Tooltip title="Align Center"><ToggleButton value="centerX" onClick={() => onAlign?.("centerX")} sx={{ border: "none" }}><AlignHorizontalCenterIcon fontSize="small"/></ToggleButton></Tooltip>
-            <Tooltip title="Align Right"><ToggleButton value="right" onClick={() => onAlign?.("right")} sx={{ border: "none" }}><AlignHorizontalRightIcon fontSize="small"/></ToggleButton></Tooltip>
+            <Tooltip title="左对齐"><ToggleButton value="left" onClick={() => onAlign?.("left")} sx={{ border: "none" }}><AlignHorizontalLeftIcon fontSize="small"/></ToggleButton></Tooltip>
+            <Tooltip title="水平居中"><ToggleButton value="centerX" onClick={() => onAlign?.("centerX")} sx={{ border: "none" }}><AlignHorizontalCenterIcon fontSize="small"/></ToggleButton></Tooltip>
+            <Tooltip title="右对齐"><ToggleButton value="right" onClick={() => onAlign?.("right")} sx={{ border: "none" }}><AlignHorizontalRightIcon fontSize="small"/></ToggleButton></Tooltip>
         </ToggleButtonGroup>
 
         <Divider orientation="vertical" flexItem />
 
         <ToggleButtonGroup size="small">
-             <Tooltip title="Align Top"><ToggleButton value="top" onClick={() => onAlign?.("top")} sx={{ border: "none" }}><AlignVerticalTopIcon fontSize="small"/></ToggleButton></Tooltip>
-             <Tooltip title="Align Middle"><ToggleButton value="centerY" onClick={() => onAlign?.("centerY")} sx={{ border: "none" }}><AlignVerticalCenterIcon fontSize="small"/></ToggleButton></Tooltip>
-             <Tooltip title="Align Bottom"><ToggleButton value="bottom" onClick={() => onAlign?.("bottom")} sx={{ border: "none" }}><AlignVerticalBottomIcon fontSize="small"/></ToggleButton></Tooltip>
+             <Tooltip title="顶部对齐"><ToggleButton value="top" onClick={() => onAlign?.("top")} sx={{ border: "none" }}><AlignVerticalTopIcon fontSize="small"/></ToggleButton></Tooltip>
+             <Tooltip title="垂直居中"><ToggleButton value="centerY" onClick={() => onAlign?.("centerY")} sx={{ border: "none" }}><AlignVerticalCenterIcon fontSize="small"/></ToggleButton></Tooltip>
+             <Tooltip title="底部对齐"><ToggleButton value="bottom" onClick={() => onAlign?.("bottom")} sx={{ border: "none" }}><AlignVerticalBottomIcon fontSize="small"/></ToggleButton></Tooltip>
         </ToggleButtonGroup>
 
         <Divider orientation="vertical" flexItem />
 
-        <Tooltip title="Auto Layout">
+        <Tooltip title="自动布局">
              <ToggleButtonGroup size="small">
                 <ToggleButton value="auto" onClick={onAutoLayout} sx={{ border: "none" }}><AutoAwesomeIcon fontSize="small" /></ToggleButton>
              </ToggleButtonGroup>
@@ -147,7 +147,7 @@ export const GraphViewer = ({
       </Paper>
 
       <Typography variant="caption" sx={{ position: "absolute", bottom: 8, left: 16, color: "text.disabled", userSelect: "none", pointerEvents: "none", opacity: 0.6 }}>
-        Drag to Pan · Scroll to Zoom · Ctrl+Click to Select Multiple
+        拖拽平移 · 滚轮缩放 · Ctrl+点击多选
       </Typography>
     </Box>
   );

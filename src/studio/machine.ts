@@ -158,7 +158,7 @@ export const studioMachine = createMachine<StudioContext, StudioEvent>(
             actions: assign({
               validationStatus: () => "invalid",
               validationErrors: ({ event }) => [
-                { message: event.error instanceof Error ? event.error.message : "Validation failed." },
+                { message: event.error instanceof Error ? event.error.message : "校验失败。" },
               ],
             }),
           },
@@ -213,7 +213,7 @@ export const studioMachine = createMachine<StudioContext, StudioEvent>(
           onError: {
             target: "editing",
             actions: assign({
-              jsonError: ({ event }) => String(event.error ?? "Invalid JSON"),
+              jsonError: ({ event }) => String(event.error ?? "JSON 无效"),
             }),
           },
         },

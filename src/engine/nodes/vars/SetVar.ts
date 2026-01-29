@@ -7,18 +7,18 @@ import { GameNodeDefinition } from "../../core/Node";
 export const SetVarNode: GameNodeDefinition = {
   type: 'vars.set',
   version: 1,
-  category: 'Variables',
-  title: 'Set Variable',
+  category: '变量',
+  title: '设置变量',
   inputs: [
     { name: 'exec', type: 'exec' },
-    { name: 'value', type: 'any', label: 'Value' }
+    { name: 'value', type: 'any', label: '值' }
   ],
   outputs: [
     { name: 'exec', type: 'exec' }
   ],
   properties: [
-    { name: 'name', type: 'string', label: 'Variable Name' },
-    { name: 'value', type: 'string', label: 'Default Value' } 
+    { name: 'name', type: 'string', label: '变量名' },
+    { name: 'value', type: 'string', label: '默认值' } 
   ],
   execute: async (ctx) => {
     const name = ctx.getProperty('name');

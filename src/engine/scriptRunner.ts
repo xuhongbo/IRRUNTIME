@@ -39,16 +39,16 @@ const createLogCollector = (budget: ScriptBudget) => {
 const ensureSerializable = (value: unknown, seen = new Set<unknown>()) => {
   const valueType = typeof value;
   if (valueType === "function" || valueType === "symbol" || valueType === "undefined") {
-    throw new Error("Output not serializable");
+    throw new Error("输出结果无法序列化");
   }
   if (valueType === "bigint") {
-    throw new Error("Output not serializable");
+    throw new Error("输出结果无法序列化");
   }
   if (valueType !== "object" || value === null) {
     return;
   }
   if (seen.has(value)) {
-    throw new Error("Output not serializable");
+    throw new Error("输出结果无法序列化");
   }
   seen.add(value);
   if (Array.isArray(value)) {
@@ -221,16 +221,16 @@ export const runScriptInWorker = ({
         const ensureSerializable = (value) => {
           const valueType = typeof value;
           if (valueType === "function" || valueType === "symbol" || valueType === "undefined") {
-            throw new Error("Output not serializable");
+            throw new Error("输出结果无法序列化");
           }
           if (valueType === "bigint") {
-            throw new Error("Output not serializable");
+            throw new Error("输出结果无法序列化");
           }
           if (valueType !== "object" || value === null) {
             return;
           }
           if (seen.has(value)) {
-            throw new Error("Output not serializable");
+            throw new Error("输出结果无法序列化");
           }
           seen.add(value);
           if (Array.isArray(value)) {
@@ -242,10 +242,10 @@ export const runScriptInWorker = ({
         ensureSerializable(result);
         const outputJson = JSON.stringify(result);
         if (outputJson && outputJson.length > budget.maxOutputSize) {
-          throw new Error("Output too large");
+          throw new Error("输出过大");
         }
       } catch (err) {
-        self.postMessage({ ok: false, error: "Output not serializable", logs });
+        self.postMessage({ ok: false, error: "输出结果无法序列化", logs });
         return;
       }
       self.postMessage({ ok: true, result, logs });
@@ -261,14 +261,14 @@ export const runScriptInWorker = ({
   return new Promise((resolve, reject) => {
     const timer = window.setTimeout(() => {
       worker.terminate();
-      reject(new Error("Script timeout"));
+      reject(new Error("脚本执行超时"));
     }, timeout);
 
     worker.onmessage = (event) => {
       window.clearTimeout(timer);
       worker.terminate();
       if (!event.data.ok) {
-        reject(new Error(event.data.error || "Script error"));
+        reject(new Error(event.data.error || "脚本执行错误"));
         return;
       }
       resolve({
@@ -280,7 +280,7 @@ export const runScriptInWorker = ({
     worker.onerror = () => {
       window.clearTimeout(timer);
       worker.terminate();
-      reject(new Error("Script error"));
+      reject(new Error("脚本执行错误"));
     };
 
     worker.postMessage({
@@ -350,12 +350,12 @@ export const runScriptInSandbox = ({
   );
   const result = fn(inputs, context, utils, safeMath, SafeDate, safeConsole, undefined, undefined, undefined);
   if (performance.now() - start > timeoutMs) {
-    throw new Error("Script timeout");
+    throw new Error("脚本执行超时");
   }
   ensureSerializable(result);
   const outputJson = JSON.stringify(result);
   if (outputJson && outputJson.length > budget.maxOutputSize) {
-    throw new Error("Output too large");
+    throw new Error("输出过大");
   }
   return {
     data: typeof result === "object" && result !== null ? result : { value: result },

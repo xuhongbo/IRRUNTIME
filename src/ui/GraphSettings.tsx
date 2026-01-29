@@ -272,7 +272,7 @@ export const GraphSettings = ({
         <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
              {item.type === "json" ? (
                   <TextField 
-                    label="默认值 (JSON)" size="small" fullWidth multiline rows={2}
+                    label="默认值（JSON）" size="small" fullWidth multiline rows={2}
                     value={typeof item.defaultValue === "string" ? item.defaultValue : JSON.stringify(item.defaultValue ?? null, null, 2)}
                     onChange={(e) => updateContractItem(kind, index, { defaultValue: e.target.value })}
                   />
@@ -284,7 +284,7 @@ export const GraphSettings = ({
                   />
              )}
               <TextField 
-                label="示例 (JSON Array)" size="small" fullWidth multiline rows={2}
+                label="示例（JSON 数组）" size="small" fullWidth multiline rows={2}
                 value={typeof item.examples === "string" ? item.examples : JSON.stringify(item.examples ?? [], null, 2)}
                 onChange={(e) => updateContractItem(kind, index, { examples: e.target.value })}
               />
@@ -361,7 +361,7 @@ export const GraphSettings = ({
                             </IconButton>
                         </Stack>
                         <TextField 
-                            label="输入 (JSON)" multiline rows={3} fullWidth 
+                            label="输入（JSON）" multiline rows={3} fullWidth 
                             value={preset.inputs} onChange={(e) => updatePreset(index, { inputs: e.target.value })}
                             error={!!inputErrors[preset.id]}
                             helperText={inputErrors[preset.id]}
