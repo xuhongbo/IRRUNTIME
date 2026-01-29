@@ -222,6 +222,12 @@ export class GraphRunner {
     this.emit();
   }
 
+  // 批量设置断点
+  setBreakpoints(breakpoints: string[]) {
+    this.breakpoints = new Set(breakpoints);
+    this.emit();
+  }
+
   // 连续执行：直到完成、挂起或触发断点
   run() {
     if (this.status === "waiting") return;
@@ -423,7 +429,7 @@ export class GraphRunner {
         .catch((err) => {
           if (this.deferredToken !== token) return;
           this.pending = null;
-          this.status = "error";
+          this.status = "running";
           this.handleNodeError(node, def, err instanceof Error ? err.message : String(err), traceIndex);
           this.emit();
         });
@@ -477,6 +483,8 @@ export class GraphRunner {
 
   // 处理节点执行异常：记录错误、写入轨迹并尝试走错误分支
   private handleNodeError(node: Graph["nodes"][number], def: NodeDefinition, error: string, traceIndex: number) {
+    // 统一记录错误
+    this.errors.push(error);
     const hasOnError = def.outputs.some((pin) => pin.kind === "exec" && pin.key === "onError");
     if (hasOnError) {
       this.advanceFromNode(node.id, "onError", traceIndex, {});
@@ -484,7 +492,6 @@ export class GraphRunner {
     }
     this.status = "error";
     this.viewModel = { kind: "error", title: "Runtime Error", body: error };
-    this.errors.push(error);
   }
 
   // 根据执行引脚推进到下一个节点

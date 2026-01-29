@@ -13,6 +13,7 @@ export type RuntimeEvent =
   | { type: "NEXT" }
   | { type: "CHOOSE"; choiceKey: string }
   | { type: "TOGGLE_BREAKPOINT"; nodeId: string }
+  | { type: "SET_BREAKPOINTS"; breakpoints: string[] }
   | { type: "RUNTIME_UPDATED"; snapshot: RuntimeSnapshot }
   | { type: "SET_GRAPH"; graph: Graph };
 
@@ -41,6 +42,7 @@ export const createRuntimeMachine = (runtime: GraphRuntime) =>
             NEXT: { actions: "next" },
             CHOOSE: { actions: "choose" },
             TOGGLE_BREAKPOINT: { actions: "toggleBreakpoint" },
+            SET_BREAKPOINTS: { actions: "setBreakpoints" },
             RUNTIME_UPDATED: { actions: "setSnapshot" },
             SET_GRAPH: { actions: "setGraph" },
           },
@@ -76,6 +78,10 @@ export const createRuntimeMachine = (runtime: GraphRuntime) =>
         toggleBreakpoint: ({ context, event }) => {
           const payload = event as Extract<RuntimeEvent, { type: "TOGGLE_BREAKPOINT" }>;
           context.runtime.toggleBreakpoint(payload.nodeId);
+        },
+        setBreakpoints: ({ context, event }) => {
+          const payload = event as Extract<RuntimeEvent, { type: "SET_BREAKPOINTS" }>;
+          context.runtime.setBreakpoints(payload.breakpoints);
         },
         setSnapshot: assign({
           snapshot: ({ event }) => {

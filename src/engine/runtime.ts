@@ -9,3 +9,5 @@ export {
   type TraceEntry,
   type RunMeta,
 } from "./runtime/GraphRunner";
+
+export { runGraph, stepGraph, resetGraph, type RunOptions, type RunResultSnapshot } from "./runnerApi";

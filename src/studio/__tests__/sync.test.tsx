@@ -48,7 +48,7 @@ describe("createSourceId", () => {
 describe("acceptMessage", () => {
   it("filters duplicate or self messages", () => {
     const map = new Map<string, number>();
-    const message = { type: "command", sourceId: "remote", seq: 1, command: { type: "DISCONNECT", edgeId: "edge-1" } as Command };
+    const message = { type: "command", sourceId: "remote", seq: 1, ts: Date.now(), command: { type: "DISCONNECT", edgeId: "edge-1" } as Command };
     expect(acceptMessage("self", map, message)).toBe(true);
     expect(acceptMessage("self", map, message)).toBe(false);
     expect(acceptMessage("remote", map, message)).toBe(false);
@@ -56,7 +56,7 @@ describe("acceptMessage", () => {
 
   it("rejects older sequence values", () => {
     const map = new Map<string, number>([["remote", 3]]);
-    const message = { type: "command", sourceId: "remote", seq: 2, command: { type: "DISCONNECT", edgeId: "edge-1" } as Command };
+    const message = { type: "command", sourceId: "remote", seq: 2, ts: Date.now(), command: { type: "DISCONNECT", edgeId: "edge-1" } as Command };
     expect(acceptMessage("self", map, message)).toBe(false);
   });
 });
@@ -105,6 +105,7 @@ describe("useGraphSync", () => {
 
   it("broadcasts commands and snapshots across channels", async () => {
     const mainCommands: Command[] = [];
+    const batchCommands: Command[][] = [];
     const canvasGraphs: Graph[] = [];
 
     const Wrapper = () => {
@@ -113,16 +114,19 @@ describe("useGraphSync", () => {
         mode: "main",
         onApplyGraph: () => null,
         onApplyCommand: (command) => mainCommands.push(command),
+        onApplyCommands: (commands) => batchCommands.push(commands),
       });
       const canvas = useGraphSync({
         graph,
         mode: "canvas",
         onApplyGraph: (next) => canvasGraphs.push(next),
         onApplyCommand: () => null,
+        onApplyCommands: () => null,
       });
 
       useEffect(() => {
         canvas.sendCommand({ type: "DISCONNECT", edgeId: "edge-1" });
+        canvas.sendCommands([{ type: "DISCONNECT", edgeId: "edge-2" }]);
         canvas.requestSnapshot();
       }, [canvas]);
 
@@ -138,6 +142,68 @@ describe("useGraphSync", () => {
     await waitFor(() => {
       expect(mainCommands.length).toBe(1);
       expect(canvasGraphs.length).toBeGreaterThan(0);
+      expect(batchCommands.length).toBe(1);
+    });
+  });
+
+  it("ignores stale snapshots when local changes are newer", async () => {
+    const applied: Graph[] = [];
+
+    const Wrapper = () => {
+      const sync = useGraphSync({
+        graph,
+        mode: "main",
+        onApplyGraph: (next) => applied.push(next),
+        onApplyCommand: () => null,
+      });
+
+      useEffect(() => {
+        sync.markLocalChange();
+        const channel = new BroadcastChannel("graph-studio-sync");
+        channel.postMessage({
+          type: "snapshot",
+          sourceId: "remote",
+          seq: 1,
+          ts: 0,
+          graph,
+        });
+      }, [sync]);
+
+      return null;
+    };
+
+    render(<Wrapper />);
+
+    await waitFor(() => {
+      expect(applied.length).toBe(0);
+    });
+  });
+
+  it("broadcasts breakpoints across channels", async () => {
+    const received: string[][] = [];
+    const Wrapper = () => {
+      const main = useGraphSync({
+        graph,
+        mode: "main",
+        onApplyGraph: () => null,
+        onApplyCommand: () => null,
+        onApplyBreakpoints: (next) => received.push(next),
+      });
+      const canvas = useGraphSync({
+        graph,
+        mode: "canvas",
+        onApplyGraph: () => null,
+        onApplyCommand: () => null,
+      });
+      useEffect(() => {
+        main.sendBreakpoints(["a", "b"]);
+      }, [main]);
+      return null;
+    };
+    render(<Wrapper />);
+    await waitFor(() => {
+      expect(received.length).toBe(1);
+      expect(received[0]).toEqual(["a", "b"]);
     });
   });
 
@@ -150,6 +216,7 @@ describe("useGraphSync", () => {
         enabled: false,
         onApplyGraph: () => null,
         onApplyCommand: (command) => commands.push(command),
+        onApplyCommands: () => null,
       });
       useEffect(() => {
         sync.sendCommand({ type: "DISCONNECT", edgeId: "edge-2" });

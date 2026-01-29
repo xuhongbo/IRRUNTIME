@@ -34,9 +34,11 @@ export const isBackgroundPointer = (event: { target: EventTarget | null }) => {
 
 // 判断选中集合是否一致（用于避免重复更新）
 export const selectionMatches = (entities: Map<string, unknown>, selectedNodeIds: string[]) => {
+  const normalize = (value: string) => (value.startsWith("node_") ? value.slice(5) : value);
   if (entities.size !== selectedNodeIds.length) return false;
+  const entityIds = new Set(Array.from(entities.keys()).map((id) => normalize(id)));
   for (const id of selectedNodeIds) {
-    if (!entities.has(id)) return false;
+    if (!entityIds.has(id)) return false;
   }
   return true;
 };
@@ -262,10 +264,16 @@ export const ReteCanvas = ({
       accumulating: AreaExtensions.accumulateOnCtrl(),
     });
 
+    const normalizeSelectionId = (value: string) => (value.startsWith("node_") ? value.slice(5) : value);
     const notifySelection = (fallbackId?: string) => {
-      const selected = Array.from(selectorRef.current.entities.keys());
+      const selected = Array.from(selectorRef.current.entities.keys()).map((id) =>
+        normalizeSelectionId(id)
+      );
       if (selected.length === 0 && fallbackId) {
-        onSelectNodesEvent([fallbackId]);
+        onSelectNodesEvent([normalizeSelectionId(fallbackId)]);
+        return;
+      }
+      if (selected.length === 0) {
         return;
       }
       onSelectNodesEvent(selected);
@@ -296,8 +304,16 @@ export const ReteCanvas = ({
         onSelectNodeEvent(pickedId);
         notifySelection(pickedId);
       }
-      if (context.type === "pointerup") {
+      if (context.type === "nodeselected") {
+        const pickedId = context.data.id;
+        onSelectNodeEvent(pickedId);
+        notifySelection(pickedId);
+      }
+      if (context.type === "nodeunselected") {
         notifySelection(selectedNodeId ?? undefined);
+      }
+      if (context.type === "pointerup") {
+        notifySelection();
       }
       if (context.type === "nodedragged") {
         const node = context.data;
@@ -558,6 +574,35 @@ export const ReteCanvas = ({
     };
     void syncSelection();
   }, [selectedNodeIds]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const findNodeId = (event: Event) => {
+      const path = (event.composedPath?.() ?? []) as HTMLElement[];
+      const nodeEl = path.find((el) => el?.classList?.contains?.("rete-node")) as HTMLElement | undefined;
+      if (!nodeEl) return null;
+      const testId = nodeEl.getAttribute("data-testid") ?? "";
+      if (!testId.startsWith("node-")) return null;
+      return testId.slice("node-".length) || null;
+    };
+    const handlePointerDown = (event: Event) => {
+      const mouse = event as MouseEvent;
+      if (mouse.ctrlKey || mouse.metaKey || mouse.shiftKey) return;
+      const nodeId = findNodeId(event);
+      if (!nodeId) return;
+      if (typeof window !== "undefined") {
+        const enabled = (window as unknown as { __STUDIO_DEBUG__?: boolean }).__STUDIO_DEBUG__;
+        if (enabled) {
+          console.info("rete:select", nodeId);
+        }
+      }
+      onSelectNodeEvent(nodeId);
+      onSelectNodesEvent([nodeId]);
+    };
+    container.addEventListener("pointerdown", handlePointerDown, true);
+    return () => container.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [onSelectNodeEvent, onSelectNodesEvent]);
 
   return <div className="rete-canvas" data-testid="canvas-root" ref={containerRef} />;
 };

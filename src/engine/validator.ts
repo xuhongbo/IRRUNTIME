@@ -21,6 +21,16 @@ export const isAssignable = (fromType: PinDef["dataType"], toType: PinDef["dataT
   return false;
 };
 
+// 检查默认值是否符合类型约束
+const isValidDefaultValue = (dataType: PinDef["dataType"], value: unknown) => {
+  if (value === undefined) return true;
+  if (dataType === "json" || !dataType) return true;
+  if (dataType === "string") return typeof value === "string";
+  if (dataType === "number") return typeof value === "number" && Number.isFinite(value);
+  if (dataType === "boolean") return typeof value === "boolean";
+  return true;
+};
+
 // 校验图：返回错误列表与是否通过
 export const validateGraph = (graph: Graph, registry: Registry) => {
   const errors: ValidationError[] = [];
@@ -36,6 +46,24 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
   }
   if (hasDuplicateNames(contract.outputs.map((item) => item.name))) {
     errors.push({ message: "Duplicate graph output name.", nodeId: graph.entryNodeId });
+  }
+  for (const input of contract.inputs) {
+    if (!isValidDefaultValue(input.type, input.defaultValue)) {
+      errors.push({
+        message: `Contract input "${input.name}" defaultValue type mismatch.`,
+        nodeId: graph.entryNodeId,
+        severity: "error",
+      });
+    }
+  }
+  for (const output of contract.outputs) {
+    if (!isValidDefaultValue(output.type, output.defaultValue)) {
+      errors.push({
+        message: `Contract output "${output.name}" defaultValue type mismatch.`,
+        nodeId: graph.entryNodeId,
+        severity: "error",
+      });
+    }
   }
 
   const edgeIds = new Set<string>();
@@ -176,6 +204,33 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       }
     }
 
+    // 执行路径死路检测：除 End 外必须有执行输出连线
+    const hasExecPins =
+      resolved.inputs.some((pin) => pin.kind === "exec") ||
+      resolved.outputs.some((pin) => pin.kind === "exec");
+    if (hasExecPins && node.type !== "End") {
+      const outExec = resolved.outputs.filter((pin) => pin.kind === "exec");
+      const hasOutExec = outExec.some((pin) => (fromMap.get(pin.key) ?? 0) > 0);
+      if (!hasOutExec) {
+        errors.push({
+          message: "Exec path is dead-end.",
+          nodeId: node.id,
+          severity: "error",
+        });
+      }
+    }
+    if (hasExecPins && node.type !== "Start") {
+      const inExec = resolved.inputs.filter((pin) => pin.kind === "exec");
+      const hasInExec = inExec.some((pin) => (toMap.get(pin.key) ?? 0) > 0);
+      if (!hasInExec) {
+        errors.push({
+          message: "Exec path has no incoming connection.",
+          nodeId: node.id,
+          severity: "error",
+        });
+      }
+    }
+
     if (node.type === "GraphInput") {
       const name = typeof node.props.name === "string" ? node.props.name : "";
       if (!name || !findContractPort(graph, "inputs", name)) {
@@ -192,6 +247,17 @@ export const validateGraph = (graph: Graph, registry: Registry) => {
       if (!name || !findContractPort(graph, "outputs", name)) {
         errors.push({
           message: "Graph output name is not declared in contract.",
+          nodeId: node.id,
+          severity: "error",
+        });
+      }
+    }
+
+    if (node.type === "Subgraph") {
+      const subgraphId = String(node.props.subgraphId ?? "");
+      if (!subgraphId || !graph.subgraphs || !graph.subgraphs[subgraphId]) {
+        errors.push({
+          message: "Subgraph reference missing.",
           nodeId: node.id,
           severity: "error",
         });

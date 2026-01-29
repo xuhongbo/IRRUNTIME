@@ -56,11 +56,17 @@ describe("validateGraph", () => {
   it("allows same-type data connections", () => {
     const graph = makeGraph(
       [
+        { id: "start", type: "Start", version: 1, props: {}, pos: basePos },
         { id: "a", type: "ConstString", version: 1, props: { value: "x" }, pos: basePos },
         { id: "show", type: "ShowText", version: 2, props: { title: "T" }, pos: basePos },
+        { id: "end", type: "End", version: 1, props: {}, pos: basePos },
       ],
-      [{ id: "d1", from: { nodeId: "a", pinKey: "value" }, to: { nodeId: "show", pinKey: "text" } }],
-      "a"
+      [
+        { id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "show", pinKey: "in" } },
+        { id: "e2", from: { nodeId: "show", pinKey: "out" }, to: { nodeId: "end", pinKey: "in" } },
+        { id: "d1", from: { nodeId: "a", pinKey: "value" }, to: { nodeId: "show", pinKey: "text" } },
+      ],
+      "start"
     );
     const result = validateGraph(graph, registry);
     expect(result.errors.some((err) => err.message.includes("incompatible data types"))).toBe(false);
@@ -100,10 +106,16 @@ describe("validateGraph", () => {
   it("flags unknown node types and invalid props", () => {
     const graph = makeGraph(
       [
+        { id: "start", type: "Start", version: 1, props: {}, pos: basePos },
         { id: "bad", type: "Unknown", version: 1, props: {}, pos: basePos },
         { id: "show", type: "ShowText", version: 2, props: { label: "bad" }, pos: basePos },
+        { id: "end", type: "End", version: 1, props: {}, pos: basePos },
       ],
-      []
+      [
+        { id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "show", pinKey: "in" } },
+        { id: "e2", from: { nodeId: "show", pinKey: "out" }, to: { nodeId: "end", pinKey: "in" } },
+      ],
+      "start"
     );
     const result = validateGraph(graph, registry);
     expect(result.ok).toBe(false);
@@ -113,8 +125,11 @@ describe("validateGraph", () => {
 
   it("flags duplicate contract names", () => {
     const graph = makeGraph(
-      [{ id: "start", type: "Start", version: 1, props: {}, pos: basePos }],
-      []
+      [
+        { id: "start", type: "Start", version: 1, props: {}, pos: basePos },
+        { id: "end", type: "End", version: 1, props: {}, pos: basePos },
+      ],
+      [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "end", pinKey: "in" } }]
     );
     graph.contract = {
       inputs: [
@@ -130,6 +145,23 @@ describe("validateGraph", () => {
     expect(result.ok).toBe(false);
     expect(result.errors.some((err) => err.message.includes("Duplicate graph input"))).toBe(true);
     expect(result.errors.some((err) => err.message.includes("Duplicate graph output"))).toBe(true);
+  });
+
+  it("flags contract defaultValue type mismatch", () => {
+    const graph = makeGraph(
+      [
+        { id: "start", type: "Start", version: 1, props: {}, pos: basePos },
+        { id: "end", type: "End", version: 1, props: {}, pos: basePos },
+      ],
+      [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "end", pinKey: "in" } }]
+    );
+    graph.contract = {
+      inputs: [{ name: "x", type: "number", defaultValue: "bad" }],
+      outputs: [{ name: "y", type: "boolean", defaultValue: "bad" }],
+    };
+    const result = validateGraph(graph, registry);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((err) => err.message.includes("defaultValue type mismatch"))).toBe(true);
   });
 
   it("flags unknown edge node type", () => {
@@ -185,13 +217,17 @@ describe("validateGraph", () => {
   it("allows data to connect to json inputs", () => {
     const graph = makeGraph(
       [
+        { id: "start", type: "Start", version: 1, props: {}, pos: basePos },
         { id: "num", type: "ConstNumber", version: 1, props: { value: 1 }, pos: basePos },
         { id: "set", type: "SetVar", version: 1, props: {}, pos: basePos },
+        { id: "end", type: "End", version: 1, props: {}, pos: basePos },
       ],
       [
+        { id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "set", pinKey: "in" } },
+        { id: "e2", from: { nodeId: "set", pinKey: "out" }, to: { nodeId: "end", pinKey: "in" } },
         { id: "d1", from: { nodeId: "num", pinKey: "value" }, to: { nodeId: "set", pinKey: "value" } },
       ],
-      "num"
+      "start"
     );
     const result = validateGraph(graph, registry);
     expect(result.errors.some((err) => err.message.includes("incompatible data types"))).toBe(false);
@@ -220,6 +256,8 @@ describe("validateGraph", () => {
               version: 1,
               title: type,
               description: "",
+              category: "流程",
+              doc: { summary: "" },
               inputs: type === "B" ? [{ key: "x", label: "x", kind: "data" }] : [],
               outputs: type === "A" ? [{ key: "x", label: "x", kind: "data" }] : [],
               propsSchema: z.object({}).strict(),
@@ -280,8 +318,11 @@ describe("validateGraph", () => {
       id: "g",
       version: 1,
       entryNodeId: "start",
-      nodes: [{ id: "start", type: "Start", version: 1, props: {}, pos: basePos }],
-      edges: [],
+      nodes: [
+        { id: "start", type: "Start", version: 1, props: {}, pos: basePos },
+        { id: "end", type: "End", version: 1, props: {}, pos: basePos },
+      ],
+      edges: [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "end", pinKey: "in" } }],
       contract: { inputs: [], outputs: [{ name: "result", type: "string" }] },
     };
     const result = validateGraph(graph, registry);
@@ -294,8 +335,11 @@ describe("validateGraph", () => {
       id: "g",
       version: 1,
       entryNodeId: "start",
-      nodes: [{ id: "start", type: "Start", version: 1, props: {}, pos: basePos }],
-      edges: [],
+      nodes: [
+        { id: "start", type: "Start", version: 1, props: {}, pos: basePos },
+        { id: "end", type: "End", version: 1, props: {}, pos: basePos },
+      ],
+      edges: [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "end", pinKey: "in" } }],
       contract: { inputs: [], outputs: [{ name: "opt", type: "string", required: false }] },
     };
     const result = validateGraph(graph, registry);
@@ -311,8 +355,9 @@ describe("validateGraph", () => {
         { id: "start", type: "Start", version: 1, props: {}, pos: basePos },
         { id: "in", type: "GraphInput", version: 1, props: { name: "foo" }, pos: basePos },
         { id: "out", type: "GraphOutput", version: 1, props: { name: "bar" }, pos: basePos },
+        { id: "end", type: "End", version: 1, props: {}, pos: basePos },
       ],
-      edges: [],
+      edges: [{ id: "e1", from: { nodeId: "start", pinKey: "next" }, to: { nodeId: "end", pinKey: "in" } }],
       contract: { inputs: [{ name: "good", type: "string" }], outputs: [] },
     };
     const result = validateGraph(graph, registry);

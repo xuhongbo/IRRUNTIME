@@ -169,21 +169,6 @@ const StudioApp = () => {
     applyPresetInputs(selectedPresetId);
   }, [selectedPresetId]);
 
-  // 在本地编辑时推入历史栈，远程同步不计入历史
-  useEffect(() => {
-    if (historyActionRef.current === "remote") {
-      historyActionRef.current = null;
-      return;
-    }
-    if (historyActionRef.current === "undo" || historyActionRef.current === "redo") {
-      historyActionRef.current = null;
-      return;
-    }
-    if (!pendingHistoryRef.current) return;
-    pendingHistoryRef.current = false;
-    historyRef.current = pushHistory(historyRef.current, graphRef.current);
-  }, [graph]);
-
   // 跨标签页同步：接收远程图或命令并应用
   const sync = useGraphSync({
     graph,
@@ -200,7 +185,49 @@ const StudioApp = () => {
       updateGraph(applyCommand(graphRef.current, command));
       setTimeout(() => setIsRemoteSyncing(false), 0);
     },
+    onApplyCommands: (commands) => {
+      if (commands.length === 0) return;
+      setIsRemoteSyncing(true);
+      historyActionRef.current = "remote";
+      let next = graphRef.current;
+      for (const command of commands) {
+        next = applyCommand(next, command);
+      }
+      updateGraph(next);
+      setTimeout(() => setIsRemoteSyncing(false), 0);
+    },
+    onApplyBreakpoints: (next) => {
+      runtimeSend({ type: "SET_BREAKPOINTS", breakpoints: next });
+    },
   });
+
+  // 本地变更标记：用于避免被远程快照覆盖
+  useEffect(() => {
+    if (historyActionRef.current === "remote") {
+      return;
+    }
+    sync.markLocalChange();
+  }, [graph, sync]);
+
+  // 断点变化时同步给画布窗口
+  useEffect(() => {
+    sync.sendBreakpoints(snapshot.breakpoints);
+  }, [snapshot.breakpoints, sync]);
+
+  // 在本地编辑时推入历史栈，远程同步不计入历史
+  useEffect(() => {
+    if (historyActionRef.current === "remote") {
+      historyActionRef.current = null;
+      return;
+    }
+    if (historyActionRef.current === "undo" || historyActionRef.current === "redo") {
+      historyActionRef.current = null;
+      return;
+    }
+    if (!pendingHistoryRef.current) return;
+    pendingHistoryRef.current = false;
+    historyRef.current = pushHistory(historyRef.current, graphRef.current);
+  }, [graph]);
 
   // 本地变更后发出快照同步
   useEffect(() => {
@@ -267,14 +294,8 @@ const StudioApp = () => {
 
   const deleteSelectedNodes = () => {
     if (selectedNodeIds.length === 0) return;
-    let next = graphRef.current;
-    pendingHistoryRef.current = true;
-    for (const nodeId of selectedNodeIds) {
-      const command = { type: "DELETE_NODE", nodeId } as const;
-      next = applyCommand(next, command);
-      sync.sendCommand(command);
-    }
-    updateGraph(next);
+    const commands = selectedNodeIds.map((nodeId) => ({ type: "DELETE_NODE", nodeId } as const));
+    applyCommands(commands);
     send({ type: "SELECT_NODE", nodeId: null });
     setSelectedNodeIds([]);
   };
@@ -291,9 +312,9 @@ const StudioApp = () => {
     pendingHistoryRef.current = true;
     for (const command of commands) {
       next = applyCommand(next, command);
-      sync.sendCommand(command);
     }
     updateGraph(next);
+    sync.sendCommands(commands);
   };
 
   const applyGraphReplace = (nextGraph: Graph) => {
@@ -699,8 +720,22 @@ const StudioApp = () => {
                   onAutoLayout={() => {
                     void autoLayoutGraph(graphRef.current, registry).then((commands) => applyCommands(commands));
                   }}
-                  onSelectNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
+                  onSelectNode={(nodeId) => {
+                    if (typeof window !== "undefined") {
+                      const enabled = (window as unknown as { __STUDIO_DEBUG__?: boolean }).__STUDIO_DEBUG__;
+                      if (enabled) {
+                        console.info("studio:selectNode", nodeId);
+                      }
+                    }
+                    send({ type: "SELECT_NODE", nodeId });
+                  }}
                   onSelectNodes={(nodeIds) => {
+                    if (typeof window !== "undefined") {
+                      const enabled = (window as unknown as { __STUDIO_DEBUG__?: boolean }).__STUDIO_DEBUG__;
+                      if (enabled) {
+                        console.info("studio:selectNodes", nodeIds);
+                      }
+                    }
                     setSelectedNodeIds(nodeIds);
                     send({ type: "SELECT_NODE", nodeId: nodeIds[0] ?? null });
                   }}
@@ -774,7 +809,12 @@ const StudioApp = () => {
                 </Tabs>
                 <Box sx={{ flexGrow: 1, overflow: "auto" }}>
                   {rightTab === "trace" ? (
-                    <TracePanel trace={ecs.trace} runMeta={snapshot.runMeta} />
+                    <TracePanel
+                      trace={ecs.trace}
+                      runMeta={snapshot.runMeta}
+                      runningNodeId={snapshot.currentNodeId}
+                      onSelectNode={(nodeId) => send({ type: "SELECT_NODE", nodeId })}
+                    />
                   ) : (
                     <VariablesPanel vars={snapshot.vars} />
                   )}
@@ -826,6 +866,7 @@ const CanvasOnlyApp = () => {
   const graphRef = useRef(graph);
   const [isRemoteSyncing, setIsRemoteSyncing] = useState(false);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  const [breakpoints, setBreakpoints] = useState<string[]>([]);
 
   useEffect(() => {
     graphRef.current = graph;
@@ -844,7 +885,25 @@ const CanvasOnlyApp = () => {
       updateGraph(applyCommand(graphRef.current, command));
       setTimeout(() => setIsRemoteSyncing(false), 0);
     },
+    onApplyCommands: (commands) => {
+      if (commands.length === 0) return;
+      setIsRemoteSyncing(true);
+      let next = graphRef.current;
+      for (const command of commands) {
+        next = applyCommand(next, command);
+      }
+      updateGraph(next);
+      setTimeout(() => setIsRemoteSyncing(false), 0);
+    },
+    onApplyBreakpoints: (next) => {
+      setBreakpoints(next);
+    },
   });
+
+  useEffect(() => {
+    if (isRemoteSyncing) return;
+    sync.markLocalChange();
+  }, [graph, isRemoteSyncing, sync]);
 
   useEffect(() => {
     sync.requestSnapshot();
@@ -864,7 +923,7 @@ const CanvasOnlyApp = () => {
       focusedPin={state.context.focusedPin}
       validationErrors={state.context.validationErrors}
       runningNodeId={null}
-      breakpoints={[]}
+      breakpoints={breakpoints}
       suppressDrag={isRemoteSyncing}
       snapToGrid
       onSelectNode={(nodeId) => {

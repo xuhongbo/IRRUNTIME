@@ -238,6 +238,8 @@ describe("GraphRuntime", () => {
       version: 1,
       title: "Start",
       description: "",
+      category: "入口",
+      doc: { summary: "" },
       inputs: [],
       outputs: [{ key: "next", label: "Next", kind: "exec" }],
       propsSchema: z.object({}).strict(),
@@ -250,6 +252,8 @@ describe("GraphRuntime", () => {
       version: 1,
       title: "DeferredError",
       description: "",
+      category: "流程",
+      doc: { summary: "" },
       inputs: [{ key: "in", label: "In", kind: "exec" }],
       outputs: [{ key: "out", label: "Out", kind: "exec" }],
       propsSchema: z.object({}).strict(),
@@ -278,6 +282,8 @@ describe("GraphRuntime", () => {
       version: 1,
       title: "Start",
       description: "",
+      category: "入口",
+      doc: { summary: "" },
       inputs: [],
       outputs: [{ key: "next", label: "Next", kind: "exec" }],
       propsSchema: z.object({}).strict(),
@@ -290,6 +296,8 @@ describe("GraphRuntime", () => {
       version: 1,
       title: "DeferredReject",
       description: "",
+      category: "流程",
+      doc: { summary: "" },
       inputs: [{ key: "in", label: "In", kind: "exec" }],
       outputs: [{ key: "out", label: "Out", kind: "exec" }],
       propsSchema: z.object({}).strict(),
@@ -334,7 +342,7 @@ describe("GraphRuntime", () => {
     runtime.run();
     const snapshot = runtime.getSnapshot();
     expect(snapshot.status).toBe("finished");
-    expect(snapshot.errors.length).toBe(0);
+    expect(snapshot.errors.length).toBeGreaterThan(0);
   });
 
   it("fails when required input is missing", () => {

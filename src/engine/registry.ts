@@ -66,6 +66,13 @@ export type NodeDefinition = {
   version: number;
   title: string;
   description: string;
+  category: string;
+  tags?: string[];
+  doc?: {
+    summary: string;
+    inputs?: string[];
+    outputs?: string[];
+  };
   inputs: PinDef[];
   outputs: PinDef[];
   propsSchema: z.ZodType<unknown>;
@@ -96,6 +103,8 @@ const startNode: NodeDefinition = {
   version: 1,
   title: "Start",
   description: "Entry point of a graph.",
+  category: "入口",
+  doc: { summary: "图执行入口。" },
   inputs: [],
   outputs: [{ key: "next", label: "Next", kind: "exec" }],
   propsSchema: z.object({}).strict(),
@@ -110,6 +119,8 @@ const endNode: NodeDefinition = {
   version: 1,
   title: "End",
   description: "Terminate execution.",
+  category: "入口",
+  doc: { summary: "图执行终点。" },
   inputs: [{ key: "in", label: "In", kind: "exec" }],
   outputs: [],
   propsSchema: z.object({}).strict(),
@@ -128,6 +139,8 @@ const graphInputNode: NodeDefinition = {
   version: 1,
   title: "Graph Input",
   description: "Expose a typed graph input value.",
+  category: "流程",
+  doc: { summary: "读取图输入并输出值。" },
   inputs: [],
   outputs: [{ key: "value", label: "Value", kind: "data", dataType: "json", required: true }],
   propsSchema: z.object({ name: z.string().default("") }).strict(),
@@ -158,6 +171,8 @@ const graphOutputNode: NodeDefinition = {
   version: 1,
   title: "Graph Output",
   description: "Capture a typed graph output value.",
+  category: "流程",
+  doc: { summary: "将输入写入图输出。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "value", label: "Value", kind: "data", dataType: "json", required: true },
@@ -191,6 +206,8 @@ const scriptNode: NodeDefinition = {
   version: 1,
   title: "Script",
   description: "Execute a sandboxed script with deterministic utilities.",
+  category: "脚本",
+  doc: { summary: "执行沙箱脚本并输出结果。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "input", label: "Input", kind: "data", dataType: "json", required: false },
@@ -255,6 +272,8 @@ const setVarNode: NodeDefinition = {
   version: 1,
   title: "Set Variable",
   description: "Write a value into the runtime variable store.",
+  category: "变量",
+  doc: { summary: "写入运行时变量。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "name", label: "Name", kind: "data", dataType: "string", required: true },
@@ -293,6 +312,8 @@ const getVarNode: NodeDefinition = {
   version: 1,
   title: "Get Variable",
   description: "Read a value from the runtime variable store.",
+  category: "变量",
+  doc: { summary: "读取运行时变量。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "name", label: "Name", kind: "data", dataType: "string", required: true },
@@ -329,6 +350,8 @@ const ifNode: NodeDefinition = {
   version: 1,
   title: "If",
   description: "Branch based on a boolean condition.",
+  category: "逻辑",
+  doc: { summary: "基于条件分支执行。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "condition", label: "Condition", kind: "data", dataType: "boolean", required: true },
@@ -360,6 +383,8 @@ const equalsNode: NodeDefinition = {
   version: 1,
   title: "Equals",
   description: "Compare two values for strict equality.",
+  category: "逻辑",
+  doc: { summary: "比较两个值是否相等。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "a", label: "A", kind: "data", dataType: "json", required: true },
@@ -389,6 +414,8 @@ const constStringNode: NodeDefinition = {
   version: 1,
   title: "Const String",
   description: "Emit a string literal.",
+  category: "常量",
+  doc: { summary: "输出字符串常量。" },
   inputs: [],
   outputs: [{ key: "value", label: "Value", kind: "data", dataType: "string" }],
   propsSchema: z.object({ value: z.string().default("") }).strict(),
@@ -406,6 +433,8 @@ const constNumberNode: NodeDefinition = {
   version: 1,
   title: "Const Number",
   description: "Emit a number literal.",
+  category: "常量",
+  doc: { summary: "输出数字常量。" },
   inputs: [],
   outputs: [{ key: "value", label: "Value", kind: "data", dataType: "number" }],
   propsSchema: z.object({ value: z.number().default(0) }).strict(),
@@ -423,6 +452,8 @@ const constBooleanNode: NodeDefinition = {
   version: 1,
   title: "Const Boolean",
   description: "Emit a boolean literal.",
+  category: "常量",
+  doc: { summary: "输出布尔常量。" },
   inputs: [],
   outputs: [{ key: "value", label: "Value", kind: "data", dataType: "boolean" }],
   propsSchema: z.object({ value: z.boolean().default(false) }).strict(),
@@ -440,6 +471,8 @@ const constJsonNode: NodeDefinition = {
   version: 1,
   title: "Const JSON",
   description: "Emit a JSON literal.",
+  category: "常量",
+  doc: { summary: "输出 JSON 常量。" },
   inputs: [],
   outputs: [{ key: "value", label: "Value", kind: "data", dataType: "json" }],
   propsSchema: z.object({ value: z.unknown() }).strict(),
@@ -457,6 +490,8 @@ const toNumberNode: NodeDefinition = {
   version: 1,
   title: "To Number",
   description: "Convert a JSON value into a number.",
+  category: "转换",
+  doc: { summary: "将输入转换为数字。" },
   inputs: [{ key: "value", label: "Value", kind: "data", dataType: "json", required: true }],
   outputs: [{ key: "number", label: "Number", kind: "data", dataType: "number" }],
   propsSchema: z.object({}).strict(),
@@ -480,6 +515,8 @@ const toStringNode: NodeDefinition = {
   version: 1,
   title: "To String",
   description: "Convert a JSON value into a string.",
+  category: "转换",
+  doc: { summary: "将输入转换为字符串。" },
   inputs: [{ key: "value", label: "Value", kind: "data", dataType: "json", required: true }],
   outputs: [{ key: "text", label: "Text", kind: "data", dataType: "string" }],
   propsSchema: z.object({}).strict(),
@@ -497,6 +534,8 @@ const showTextNodeV2: NodeDefinition = {
   version: 2,
   title: "Show Text",
   description: "Display a message and wait for user NEXT.",
+  category: "交互",
+  doc: { summary: "展示文本并等待继续。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "text", label: "Text", kind: "data", dataType: "string", required: true },
@@ -529,6 +568,8 @@ const waitChoiceNode: NodeDefinition = {
   version: 1,
   title: "Wait For Choice",
   description: "Pause execution until the user selects a choice.",
+  category: "交互",
+  doc: { summary: "等待用户选择分支。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "prompt", label: "Prompt", kind: "data", dataType: "string", required: true },
@@ -588,6 +629,8 @@ const delayNode: NodeDefinition = {
   version: 1,
   title: "Delay",
   description: "Pause execution for a duration before continuing.",
+  category: "时间",
+  doc: { summary: "延迟指定时间后继续。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "ms", label: "Milliseconds", kind: "data", dataType: "number", required: true },
@@ -617,6 +660,8 @@ const expressionNode: NodeDefinition = {
   version: 1,
   title: "Expression",
   description: "Evaluate a lightweight expression with inputs and vars.",
+  category: "脚本",
+  doc: { summary: "执行轻量表达式。" },
   inputs: [{ key: "input", label: "Input", kind: "data", dataType: "json", required: false }],
   outputs: [{ key: "value", label: "Value", kind: "data", dataType: "json" }],
   propsSchema: z
@@ -673,6 +718,8 @@ const divideNode: NodeDefinition = {
   version: 1,
   title: "Divide",
   description: "Divide A by B. Throws error on division by zero.",
+  category: "逻辑",
+  doc: { summary: "执行除法并处理除零。" },
   inputs: [
     { key: "in", label: "In", kind: "exec" },
     { key: "a", label: "A", kind: "data", dataType: "number", required: true },
@@ -710,6 +757,8 @@ const subgraphNode: NodeDefinition = {
   version: 1,
   title: "Subgraph",
   description: "Invoke a nested subgraph by id.",
+  category: "子图",
+  doc: { summary: "调用子图执行。" },
   inputs: [{ key: "in", label: "In", kind: "exec" }],
   outputs: [{ key: "out", label: "Out", kind: "exec" }],
   propsSchema: z

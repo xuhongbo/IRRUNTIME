@@ -19,10 +19,12 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 type TracePanelProps = {
   trace: TraceEntry[];
   runMeta: RunMeta;
+  runningNodeId?: string | null;
+  onSelectNode?: (nodeId: string) => void;
 };
 
 // 轨迹面板组件
-export const TracePanel = ({ trace, runMeta }: TracePanelProps) => {
+export const TracePanel = ({ trace, runMeta, runningNodeId, onSelectNode }: TracePanelProps) => {
   // 复制轨迹 JSON 到剪贴板
   const handleCopy = async () => {
     const payload = formatTraceJson(runMeta, trace);
@@ -66,9 +68,16 @@ export const TracePanel = ({ trace, runMeta }: TracePanelProps) => {
             sx={{ 
                 borderBottom: 1, 
                 borderColor: "divider",
-                bgcolor: entry.error ? "error.lighter" : "transparent",
-                px: 2, py: 1
+                bgcolor:
+                  entry.nodeId === runningNodeId
+                    ? "info.lighter"
+                    : entry.error
+                      ? "error.lighter"
+                      : "transparent",
+                px: 2, py: 1,
+                cursor: onSelectNode ? "pointer" : "default"
             }}
+            onClick={() => onSelectNode?.(entry.nodeId)}
           >
             <ListItemText
               primary={
