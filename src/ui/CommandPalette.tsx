@@ -1,6 +1,10 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 命令面板：提供快捷命令检索与执行
 import { useEffect } from "react";
 import "./CommandPalette.css";
 
+// 命令定义
 export type CommandAction = {
   id: string;
   title: string;
@@ -8,6 +12,7 @@ export type CommandAction = {
   run: () => void;
 };
 
+// 命令面板参数
 type CommandPaletteProps = {
   open: boolean;
   query: string;
@@ -16,6 +21,7 @@ type CommandPaletteProps = {
   onClose: () => void;
 };
 
+// 命令面板组件
 export const CommandPalette = ({ open, query, actions, onQueryChange, onClose }: CommandPaletteProps) => {
   useEffect(() => {
     if (!open) return;

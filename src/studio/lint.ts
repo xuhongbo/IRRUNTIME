@@ -1,9 +1,13 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 轻量提示规则：非阻断的设计建议
 import type { Graph } from "../engine/ir";
 import { isNamespaced } from "../engine/vars";
 import { registry } from "../engine/registry";
 import { resolveNodeDefinition } from "../engine/contract";
 import type { Command } from "./commands";
 
+// 提示信息结构
 export type LintIssue = {
   id: string;
   nodeId?: string;
@@ -12,6 +16,7 @@ export type LintIssue = {
   fix?: { label: string; commands: Command[] };
 };
 
+// 扫描图并生成提示
 export const lintGraph = (graph: Graph): LintIssue[] => {
   const issues: LintIssue[] = [];
   const edgesByNode = new Map<string, { inExec: number; outExec: number }>();

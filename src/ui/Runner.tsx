@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 运行面板：展示节点输出与等待交互
 import type { ViewModel } from "../engine/viewModel";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -13,6 +16,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 
+// 运行面板参数
 type RunnerProps = {
   viewModel: ViewModel | null;
   status: string;
@@ -24,6 +28,7 @@ type RunnerProps = {
   onChoose: (choiceKey: string) => void;
 };
 
+// 运行面板组件
 export const Runner = ({
   viewModel,
   status,
@@ -34,6 +39,7 @@ export const Runner = ({
   onNext,
   onChoose,
 }: RunnerProps) => {
+  // 渲染预设选择
   const renderPresets = () => (
     <>
       {presets && presets.length > 0 && (
@@ -56,6 +62,7 @@ export const Runner = ({
     </>
   );
 
+  // 渲染图输出
   const renderOutputs = () => (
       <>
         {outputs && Object.keys(outputs).length > 0 && (

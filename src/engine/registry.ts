@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 节点注册表：集中定义节点类型、端口与运行逻辑
 import { z } from "zod";
 import type { Graph, NodeInstance } from "./ir";
 import { normalizeContract } from "./contract";
@@ -5,6 +8,7 @@ import { runScriptInSandbox, runScriptInWorker } from "./scriptRunner";
 import { normalizeVarName } from "./vars";
 import type { ChoiceOption, ViewModel } from "./viewModel";
 
+// 引脚定义：描述端口类型与数据约束
 export type PinDef = {
   key: string;
   label: string;
@@ -14,6 +18,7 @@ export type PinDef = {
   defaultValue?: unknown;
 };
 
+// 节点属性表单定义：用于面板编辑
 export type FormFieldDef = {
   key: string;
   label: string;
@@ -23,6 +28,7 @@ export type FormFieldDef = {
   helpText?: string;
 };
 
+// 节点运行上下文：提供输入、属性、变量与图信息
 export type NodeRunContext = {
   node: NodeInstance;
   inputs: Record<string, unknown>;
@@ -31,6 +37,7 @@ export type NodeRunContext = {
   vars: Record<string, unknown>;
 };
 
+// 挂起标记：用于等待继续、选择或延迟
 export type LatentToken =
   | { kind: "next"; resumeExec: string }
   | {
@@ -41,6 +48,7 @@ export type LatentToken =
     }
   | { kind: "delay"; ms: number; resumeExec: string };
 
+// 节点运行结果：包含输出、执行引脚与可选视图模型
 export type RunResult = {
   data: Record<string, unknown>;
   exec?: string;
@@ -52,6 +60,7 @@ export type RunResult = {
   error?: string;
 };
 
+// 节点定义：描述端口、属性与运行函数
 export type NodeDefinition = {
   type: string;
   version: number;
@@ -65,6 +74,7 @@ export type NodeDefinition = {
   run: (ctx: NodeRunContext) => RunResult;
 };
 
+// 节点迁移记录：用于版本升级追踪
 export type MigrationRecord = {
   nodeId: string;
   type: string;
@@ -72,6 +82,7 @@ export type MigrationRecord = {
   toVersion: number;
 };
 
+// 注册表接口：查询、列出与迁移
 export type Registry = {
   get: (type: string, version?: number) => NodeDefinition | null;
   getLatest: (type: string) => NodeDefinition | null;
@@ -79,6 +90,7 @@ export type Registry = {
   migrateGraph: (graph: Graph) => { graph: Graph; migrations: MigrationRecord[] };
 };
 
+// 起始节点：执行流入口
 const startNode: NodeDefinition = {
   type: "Start",
   version: 1,
@@ -92,6 +104,7 @@ const startNode: NodeDefinition = {
   run: () => ({ data: {}, exec: "next" }),
 };
 
+// 结束节点：终止执行
 const endNode: NodeDefinition = {
   type: "End",
   version: 1,
@@ -109,6 +122,7 @@ const endNode: NodeDefinition = {
   }),
 };
 
+// 图输入节点：将图输入映射为数据输出
 const graphInputNode: NodeDefinition = {
   type: "GraphInput",
   version: 1,
@@ -138,6 +152,7 @@ const graphInputNode: NodeDefinition = {
   }),
 };
 
+// 图输出节点：收集图输出
 const graphOutputNode: NodeDefinition = {
   type: "GraphOutput",
   version: 1,
@@ -170,6 +185,7 @@ const graphOutputNode: NodeDefinition = {
   }),
 };
 
+// 脚本节点：在沙箱中执行脚本
 const scriptNode: NodeDefinition = {
   type: "Script",
   version: 1,
@@ -233,6 +249,7 @@ const scriptNode: NodeDefinition = {
   },
 };
 
+// 写变量节点：写入运行时变量
 const setVarNode: NodeDefinition = {
   type: "SetVar",
   version: 1,
@@ -270,6 +287,7 @@ const setVarNode: NodeDefinition = {
   },
 };
 
+// 读变量节点：读取运行时变量
 const getVarNode: NodeDefinition = {
   type: "GetVar",
   version: 1,
@@ -305,6 +323,7 @@ const getVarNode: NodeDefinition = {
   },
 };
 
+// 条件节点：根据布尔值分支
 const ifNode: NodeDefinition = {
   type: "If",
   version: 1,
@@ -335,6 +354,7 @@ const ifNode: NodeDefinition = {
   },
 };
 
+// 相等比较节点
 const equalsNode: NodeDefinition = {
   type: "Equals",
   version: 1,
@@ -363,6 +383,7 @@ const equalsNode: NodeDefinition = {
   }),
 };
 
+// 常量字符串节点
 const constStringNode: NodeDefinition = {
   type: "ConstString",
   version: 1,
@@ -379,6 +400,7 @@ const constStringNode: NodeDefinition = {
   }),
 };
 
+// 常量数字节点
 const constNumberNode: NodeDefinition = {
   type: "ConstNumber",
   version: 1,
@@ -395,6 +417,7 @@ const constNumberNode: NodeDefinition = {
   }),
 };
 
+// 常量布尔节点
 const constBooleanNode: NodeDefinition = {
   type: "ConstBoolean",
   version: 1,
@@ -411,6 +434,7 @@ const constBooleanNode: NodeDefinition = {
   }),
 };
 
+// 常量 JSON 节点
 const constJsonNode: NodeDefinition = {
   type: "ConstJson",
   version: 1,
@@ -427,6 +451,7 @@ const constJsonNode: NodeDefinition = {
   }),
 };
 
+// 类型转换：转数字
 const toNumberNode: NodeDefinition = {
   type: "ToNumber",
   version: 1,
@@ -449,6 +474,7 @@ const toNumberNode: NodeDefinition = {
   },
 };
 
+// 类型转换：转字符串
 const toStringNode: NodeDefinition = {
   type: "ToString",
   version: 1,
@@ -465,6 +491,7 @@ const toStringNode: NodeDefinition = {
   }),
 };
 
+// 展示文本节点：等待用户继续
 const showTextNodeV2: NodeDefinition = {
   type: "ShowText",
   version: 2,
@@ -496,6 +523,7 @@ const showTextNodeV2: NodeDefinition = {
   }),
 };
 
+// 选择节点：等待用户选择分支
 const waitChoiceNode: NodeDefinition = {
   type: "WaitForChoice",
   version: 1,
@@ -554,6 +582,7 @@ const waitChoiceNode: NodeDefinition = {
   },
 };
 
+// 延迟节点：等待指定毫秒
 const delayNode: NodeDefinition = {
   type: "Delay",
   version: 1,
@@ -582,6 +611,7 @@ const delayNode: NodeDefinition = {
   },
 };
 
+// 表达式节点：轻量计算
 const expressionNode: NodeDefinition = {
   type: "Expression",
   version: 1,
@@ -637,6 +667,7 @@ const expressionNode: NodeDefinition = {
   },
 };
 
+// 除法节点：处理除零异常
 const divideNode: NodeDefinition = {
   type: "Divide",
   version: 1,
@@ -673,6 +704,7 @@ const divideNode: NodeDefinition = {
   },
 };
 
+// 子图节点：进入子图执行
 const subgraphNode: NodeDefinition = {
   type: "Subgraph",
   version: 1,
@@ -701,6 +733,7 @@ const subgraphNode: NodeDefinition = {
   }),
 };
 
+// 节点定义集合
 const definitions: NodeDefinition[] = [
   startNode,
   endNode,
@@ -725,6 +758,7 @@ const definitions: NodeDefinition[] = [
   subgraphNode,
 ];
 
+// 版本迁移表：用于节点属性升级
 const migrations: Record<string, Record<number, (props: Record<string, unknown>) => Record<string, unknown>>> = {
   ShowText: {
     1: (props) => ({
@@ -733,6 +767,7 @@ const migrations: Record<string, Record<number, (props: Record<string, unknown>)
   },
 };
 
+// 注册表实现：提供查询与迁移能力
 export const registry: Registry = {
   get: (type, version) => {
     if (version === undefined) {

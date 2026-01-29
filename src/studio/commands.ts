@@ -1,5 +1,9 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 图编辑命令：用于描述可序列化的编辑操作
 import type { Graph, NodePosition } from "../engine/ir";
 
+// 命令联合类型
 export type Command =
   | { type: "ADD_NODE"; node: Graph["nodes"][number] }
   | { type: "DELETE_NODE"; nodeId: string }
@@ -11,6 +15,7 @@ export type Command =
   | { type: "DISCONNECT"; edgeId: string }
   | { type: "APPLY_JSON"; graph: Graph };
 
+// 应用命令到图结构
 export const applyCommand = (graph: Graph, command: Command): Graph => {
   switch (command.type) {
     case "ADD_NODE":

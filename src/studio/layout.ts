@@ -1,8 +1,12 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 自动布局与图中心计算
 import type { Graph, NodePosition } from "../engine/ir";
 import type { Registry } from "../engine/registry";
 import { resolveNodeDefinition } from "../engine/contract";
 import type { Command } from "./commands";
 
+// 计算图中心点（用于居中视图）
 export const getGraphCenter = (graph: Graph): NodePosition => {
   if (graph.nodes.length === 0) {
     return { x: 0, y: 0 };
@@ -20,6 +24,7 @@ export const getGraphCenter = (graph: Graph): NodePosition => {
   return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
 };
 
+// 简易布局：按执行深度分层排列
 const autoLayoutGraphSimple = (
   graph: Graph,
   registry: Registry,
@@ -68,6 +73,7 @@ const autoLayoutGraphSimple = (
   return commands as Command[];
 };
 
+// 估算节点尺寸，用于布局引擎
 const estimateNodeSize = (node: Graph["nodes"][number], registry: Registry, graph: Graph) => {
   const resolved = resolveNodeDefinition(node, graph, registry);
   const inputCount = resolved?.inputs.length ?? 0;
@@ -82,12 +88,14 @@ const estimateNodeSize = (node: Graph["nodes"][number], registry: Registry, grap
   return { width, height };
 };
 
+// 转换为布局引擎节点格式
 const toElkNodes = (graph: Graph, registry: Registry) =>
   graph.nodes.map((node) => {
     const { width, height } = estimateNodeSize(node, registry, graph);
     return { id: node.id, width, height };
   });
 
+// 转换为布局引擎边格式（优先执行边）
 const toElkEdges = (graph: Graph, registry: Registry) => {
   const execEdges = graph.edges.filter((edge) => {
     const sourceNode = graph.nodes.find((node) => node.id === edge.from.nodeId);
@@ -105,6 +113,7 @@ const toElkEdges = (graph: Graph, registry: Registry) => {
   }));
 };
 
+// 自动布局：优先使用 ELK，引擎不可用时回退
 export const autoLayoutGraph = async (
   graph: Graph,
   registry: Registry,

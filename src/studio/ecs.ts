@@ -1,14 +1,19 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// ECS 状态：用于节点选中、错误、运行状态的快速渲染
 import { addComponent, addEntity, createWorld, removeComponent, removeEntity } from "bitecs";
 import type { Graph } from "../engine/ir";
 import type { ValidationError } from "../engine/validator";
 import type { ValidationStatus } from "./machine";
 import type { RuntimeSnapshot } from "../engine/runtime";
 
+// ECS 组件标记
 export const GraphRef = {};
 export const NodeTag = {};
 export const Selected = {};
 export const HasError = {};
 
+// ECS 状态结构
 export type EcsState = {
   world: ReturnType<typeof createWorld>;
   graphEntity: number;
@@ -24,6 +29,7 @@ export type EcsState = {
   vars: RuntimeSnapshot["vars"];
 };
 
+// 初始化 ECS 状态与节点实体
 export const createEcsState = (graph: Graph): EcsState => {
   const world = createWorld();
   const graphEntity = addEntity(world);
@@ -50,6 +56,7 @@ export const createEcsState = (graph: Graph): EcsState => {
   };
 };
 
+// 同步图结构到 ECS（新增/删除节点实体）
 export const syncGraphToEcs = (state: EcsState, graph: Graph) => {
   const existing = new Set(state.nodeEntities.keys());
   for (const node of graph.nodes) {
@@ -72,6 +79,7 @@ export const syncGraphToEcs = (state: EcsState, graph: Graph) => {
   }
 };
 
+// 设置选中节点
 export const setSelection = (state: EcsState, nodeId: string | null) => {
   for (const [id, eid] of state.nodeEntities.entries()) {
     if (id === nodeId) {
@@ -83,6 +91,7 @@ export const setSelection = (state: EcsState, nodeId: string | null) => {
   state.selectedNodeId = nodeId;
 };
 
+// 设置校验结果
 export const setValidationState = (
   state: EcsState,
   status: ValidationStatus,
@@ -92,6 +101,7 @@ export const setValidationState = (
   state.validationErrors = errors;
 };
 
+// 设置运行时快照到 ECS
 export const setRuntimeState = (state: EcsState, snapshot: RuntimeSnapshot) => {
   state.runtimeStatus = snapshot.status;
   state.runningNodeId = snapshot.currentNodeId;

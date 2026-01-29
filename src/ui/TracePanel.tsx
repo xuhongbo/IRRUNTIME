@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 运行轨迹面板：展示执行历史并支持复制
 import type { RunMeta, TraceEntry } from "../engine/runtime";
 import { formatTraceJson } from "./traceUtils";
 import Box from "@mui/material/Box";
@@ -12,12 +15,15 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
+// 轨迹面板参数
 type TracePanelProps = {
   trace: TraceEntry[];
   runMeta: RunMeta;
 };
 
+// 轨迹面板组件
 export const TracePanel = ({ trace, runMeta }: TracePanelProps) => {
+  // 复制轨迹 JSON 到剪贴板
   const handleCopy = async () => {
     const payload = formatTraceJson(runMeta, trace);
     await navigator.clipboard.writeText(payload);

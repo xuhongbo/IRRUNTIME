@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// JSON 编辑面板：直接编辑图结构
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -7,6 +10,7 @@ import SyncIcon from "@mui/icons-material/Sync";
 import SaveIcon from "@mui/icons-material/Save";
 import Alert from "@mui/material/Alert";
 
+// JSON 面板参数
 type JsonTabProps = {
   draft: string;
   error: string | null;
@@ -15,6 +19,7 @@ type JsonTabProps = {
   onReset: () => void;
 };
 
+// JSON 面板组件
 export const JsonTab = ({ draft, error, onChange, onApply, onReset }: JsonTabProps) => {
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }} data-testid="json-tab">

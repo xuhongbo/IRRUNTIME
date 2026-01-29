@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 变量面板：展示运行时变量与筛选
 import React, { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -8,10 +11,12 @@ import TextField from "@mui/material/TextField";
 import Paper from "@mui/material/Paper";
 import { splitVarName } from "../engine/vars";
 
+// 变量面板参数
 type VariablesPanelProps = {
   vars: Record<string, unknown>;
 };
 
+// 格式化变量值为可读文本
 const formatValue = (value: unknown) => {
   if (typeof value === "string") return value;
   try {
@@ -21,6 +26,7 @@ const formatValue = (value: unknown) => {
   }
 };
 
+// 变量面板组件
 export const VariablesPanel = ({ vars }: VariablesPanelProps) => {
   const [filter, setFilter] = useState("");
   const entries = useMemo(() => {

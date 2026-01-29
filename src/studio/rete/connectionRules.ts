@@ -1,24 +1,31 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 连接规则：用于画布层判断连线是否合法
 import type { Graph } from "../../engine/ir";
 import type { PinDef, Registry } from "../../engine/registry";
 import { isAssignable } from "../../engine/validator";
 import { resolveNodeDefinition } from "../../engine/contract";
 
+// 连线端点描述
 export type ConnectionEndpoint = {
   nodeId: string;
   pinKey: string;
   side: "input" | "output";
 };
 
+// 连接判断结果
 export type ConnectionDecision = {
   ok: boolean;
   reason?: string;
 };
 
+// 端口元信息：仅保留校验所需字段
 type PinMeta = {
   kind: PinDef["kind"];
   dataType?: PinDef["dataType"];
 };
 
+// 获取端口元信息，用于连接校验
 const getPinMeta = (graph: Graph, registry: Registry, endpoint: ConnectionEndpoint): PinMeta | null => {
   const node = graph.nodes.find((item) => item.id === endpoint.nodeId);
   if (!node) return null;
@@ -32,6 +39,7 @@ const getPinMeta = (graph: Graph, registry: Registry, endpoint: ConnectionEndpoi
   return pin ? { kind: pin.kind, dataType: pin.dataType } : null;
 };
 
+// 判断两个端点是否可以连线
 export const canConnectEndpoints = (
   graph: Graph,
   registry: Registry,
@@ -81,6 +89,7 @@ export const canConnectEndpoints = (
   return { ok: true };
 };
 
+// 将画布连接对象转换为图边结构
 export const connectionToEdge = (connection: {
   id: string;
   source: string;

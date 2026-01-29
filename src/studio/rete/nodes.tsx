@@ -1,17 +1,23 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// Rete 节点视图：控制端口与控制器渲染顺序
 import React from "react";
 import { Presets } from "rete-react-plugin";
 import type { ClassicPreset } from "rete";
 import type { ReteNodeData } from "./types";
 
+// 根据 index 排序端口或控件
 const sortByIndex = <T extends { index?: number }>(entries: [string, T | undefined][]) => {
   entries.sort((a, b) => (a[1]?.index ?? 0) - (b[1]?.index ?? 0));
 };
 
+// 节点视图参数
 type NodeViewProps = {
   data: ClassicPreset.Node & ReteNodeData;
   emit: (props: Presets.classic.ReactArea2D<Presets.classic.ClassicScheme>) => void;
 };
 
+// 节点渲染：包含标题、端口与控件
 export const NodeView = ({ data, emit }: NodeViewProps) => {
   const inputs = Object.entries(data.inputs);
   const outputs = Object.entries(data.outputs);

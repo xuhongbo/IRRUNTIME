@@ -1,8 +1,12 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 图运行时执行引擎：负责调度节点、记录轨迹与处理等待状态
 import type { Graph, NodeIO } from "../ir";
 import type { Registry, RunResult, NodeDefinition, LatentToken } from "../registry";
 import type { ViewModel } from "../viewModel";
 import { normalizeContract } from "../contract";
 
+// 运行轨迹条目：记录一次节点执行的输入、输出与耗时
 export type TraceEntry = {
   runId: number;
   seq: number;
@@ -18,8 +22,10 @@ export type TraceEntry = {
   logs?: string[];
 };
 
+// 运行状态枚举
 export type RuntimeStatus = "idle" | "running" | "waiting" | "paused" | "error" | "finished";
 
+// 运行时快照：提供给界面层渲染与调试
 export type RuntimeSnapshot = {
   status: RuntimeStatus;
   currentNodeId: string | null;
@@ -34,6 +40,7 @@ export type RuntimeSnapshot = {
   errors: string[];
 };
 
+// 本次运行元数据：用于追踪版本与输入
 export type RunMeta = {
   runId: number;
   graphId: string;
@@ -45,11 +52,13 @@ export type RunMeta = {
   seed: number;
 };
 
+// 调用栈帧：用于子图返回
 type GraphFrame = {
   graphId: string;
   returnTo: { nodeId: string; execKey: string | undefined } | null;
 };
 
+// 等待用户选择的挂起状态
 type ChoicePending = {
   kind: "choice";
   nodeId: string;
@@ -59,6 +68,7 @@ type ChoicePending = {
   traceIndex: number;
 };
 
+// 等待用户点击继续的挂起状态
 type NextPending = {
   kind: "next";
   nodeId: string;
@@ -66,6 +76,7 @@ type NextPending = {
   traceIndex: number;
 };
 
+// 延迟等待挂起状态
 type DelayPending = {
   kind: "delay";
   nodeId: string;
@@ -75,6 +86,7 @@ type DelayPending = {
   traceIndex: number;
 };
 
+// 异步脚本挂起状态
 type DeferredPending = {
   kind: "deferred";
   nodeId: string;
@@ -82,8 +94,10 @@ type DeferredPending = {
   token: number;
 };
 
+// 运行时可能进入的挂起状态集合
 type PendingLatent = ChoicePending | NextPending | DelayPending | DeferredPending;
 
+// 图运行时上下文：缓存节点与边映射
 type GraphContext = {
   graph: Graph;
   nodeMap: Map<string, Graph["nodes"][number]>;
@@ -91,6 +105,7 @@ type GraphContext = {
   edgesByFrom: Map<string, Map<string, Graph["edges"][number]>>;
 };
 
+// 图运行引擎：以执行流边为主驱动节点执行
 export class GraphRunner {
   private registry: Registry;
   private rootGraph: Graph;
@@ -116,6 +131,7 @@ export class GraphRunner {
   private stepBudget = 800;
   private deferredToken = 0;
 
+  // 创建运行引擎并初始化图与状态
   constructor(graph: Graph, registry: Registry) {
     this.rootGraph = graph;
     this.registry = registry;
@@ -124,12 +140,14 @@ export class GraphRunner {
     this.runMeta = this.createRunMeta({});
   }
 
+  // 订阅运行时快照变化
   subscribe(listener: (snapshot: RuntimeSnapshot) => void) {
     this.listeners.add(listener);
     listener(this.getSnapshot());
     return () => this.listeners.delete(listener);
   }
 
+  // 获取当前快照（对外只读）
   getSnapshot(): RuntimeSnapshot {
     return {
       status: this.status,
@@ -146,6 +164,7 @@ export class GraphRunner {
     };
   }
 
+  // 切换图并重置运行状态
   setGraph(graph: Graph) {
     this.rootGraph = graph;
     this.currentGraphId = graph.id;
@@ -156,6 +175,7 @@ export class GraphRunner {
     this.reset();
   }
 
+  // 设置运行输入并同步元数据
   setInputs(inputs: Record<string, unknown>) {
     this.graphInputs = { ...inputs };
     this.runMeta = this.createRunMeta(inputs, this.runMeta.presetId, this.runMeta.seed);
@@ -163,6 +183,7 @@ export class GraphRunner {
     this.emit();
   }
 
+  // 准备一次运行：输入、预设与随机种子
   prepareRun(options: { inputs: Record<string, unknown>; presetId?: string; seed?: number }) {
     this.graphInputs = { ...options.inputs };
     this.runMeta = this.createRunMeta(options.inputs, options.presetId, options.seed);
@@ -170,6 +191,7 @@ export class GraphRunner {
     this.emit();
   }
 
+  // 重置运行状态与追踪数据
   reset() {
     this.clearLatent();
     this.status = "idle";
@@ -190,6 +212,7 @@ export class GraphRunner {
     this.emit();
   }
 
+  // 切换断点
   toggleBreakpoint(nodeId: string) {
     if (this.breakpoints.has(nodeId)) {
       this.breakpoints.delete(nodeId);
@@ -199,6 +222,7 @@ export class GraphRunner {
     this.emit();
   }
 
+  // 连续执行：直到完成、挂起或触发断点
   run() {
     if (this.status === "waiting") return;
     if (this.status === "finished" || this.status === "error") return;
@@ -220,16 +244,19 @@ export class GraphRunner {
     this.emit();
   }
 
+  // 便捷执行：设置输入并返回输出快照
   runWithInputs(inputs: Record<string, unknown>) {
     this.prepareRun({ inputs });
     this.run();
     return { ...this.graphOutputs };
   }
 
+  // 获取图输出快照
   getOutputs() {
     return { ...this.graphOutputs };
   }
 
+  // 单步执行：执行当前节点一次并暂停
   step() {
     if (this.status === "waiting") return;
     if (this.status === "finished" || this.status === "error") return;
@@ -241,6 +268,7 @@ export class GraphRunner {
     this.emit();
   }
 
+  // 在等待“继续”状态下推进执行
   dispatchNext() {
     if (!this.pending || this.pending.kind !== "next") return;
     const pending = this.pending;
@@ -250,6 +278,7 @@ export class GraphRunner {
     this.run();
   }
 
+  // 在等待“选择”状态下推进执行
   dispatchChoice(choiceKey: string) {
     if (!this.pending || this.pending.kind !== "choice") return;
     const pending = this.pending;
@@ -266,6 +295,7 @@ export class GraphRunner {
     this.run();
   }
 
+  // 执行当前节点，返回是否继续推进
   private executeCurrentNode(ignoreBreakpoint: boolean) {
     if (!this.currentNodeId) {
       this.status = "finished";
@@ -311,6 +341,7 @@ export class GraphRunner {
     const endMs = performance.now();
     const durationMs = endMs - startMs;
 
+    // 记录执行轨迹
     const traceEntry: TraceEntry = {
       runId: this.runId,
       seq: this.seq,
@@ -444,6 +475,7 @@ export class GraphRunner {
     return true;
   }
 
+  // 处理节点执行异常：记录错误、写入轨迹并尝试走错误分支
   private handleNodeError(node: Graph["nodes"][number], def: NodeDefinition, error: string, traceIndex: number) {
     const hasOnError = def.outputs.some((pin) => pin.kind === "exec" && pin.key === "onError");
     if (hasOnError) {
@@ -455,6 +487,7 @@ export class GraphRunner {
     this.errors.push(error);
   }
 
+  // 根据执行引脚推进到下一个节点
   private advanceFromNode(nodeId: string, execKey: string | undefined, traceIndex: number, outputs: Record<string, unknown>) {
     if (outputs && Object.keys(outputs).length > 0) {
       this.dataCache[nodeId] = outputs;
@@ -485,6 +518,7 @@ export class GraphRunner {
     this.currentNodeId = edge.to.nodeId;
   }
 
+  // 当前图执行完成：若存在上层图则返回，否则结束
   private finishOrReturn() {
     if (this.graphStack.length > 0) {
       const frame = this.graphStack.pop();
@@ -502,6 +536,7 @@ export class GraphRunner {
     this.viewModel = { kind: "done", title: "Complete", body: "Graph finished." };
   }
 
+  // 解析节点输入：沿数据边收集上游输出或默认值
   private resolveInputs(
     graphCtx: GraphContext,
     node: Graph["nodes"][number],
@@ -534,10 +569,12 @@ export class GraphRunner {
     return inputs;
   }
 
+  // 判断是否为纯数据节点（无执行引脚）
   private isDataOnlyDefinition(def: NodeDefinition) {
     return !def.inputs.some((pin) => pin.kind === "exec") && !def.outputs.some((pin) => pin.kind === "exec");
   }
 
+  // 计算纯数据节点并缓存结果
   private computeDataNode(
     graphCtx: GraphContext,
     node: Graph["nodes"][number],
@@ -578,10 +615,12 @@ export class GraphRunner {
     return outputs;
   }
 
+  // 获取节点定义（若版本未找到则尝试最新版本）
   private getNodeDefinition(node: Graph["nodes"][number]) {
     return this.registry.get(node.type, node.version) ?? this.registry.getLatest(node.type);
   }
 
+  // 获取图上下文并构建缓存映射
   private getGraphContext(graphId: string): GraphContext | null {
     const graph = this.findGraphById(graphId);
     if (!graph) return null;
@@ -597,15 +636,18 @@ export class GraphRunner {
     return { graph, nodeMap, edgesByTo, edgesByFrom };
   }
 
+  // 在主图或子图中查找指定图
   private findGraphById(graphId: string) {
     if (this.rootGraph.id === graphId) return this.rootGraph;
     return this.rootGraph.subgraphs?.[graphId] ?? null;
   }
 
+  // 从子图集合中查找子图
   private findSubgraph(graphId: string) {
     return this.rootGraph.subgraphs?.[graphId] ?? null;
   }
 
+  // 创建挂起状态对象
   private createPendingLatent(nodeId: string, latent: LatentToken, traceIndex: number): PendingLatent {
     if (latent.kind === "choice") {
       return {
@@ -635,6 +677,7 @@ export class GraphRunner {
     };
   }
 
+  // 处理延迟挂起：通过定时器继续执行
   private scheduleDelay(pending: DelayPending) {
     const timerId = window.setTimeout(() => {
       if (!this.pending || this.pending.kind !== "delay") return;
@@ -650,6 +693,7 @@ export class GraphRunner {
     this.timers.push(timerId);
   }
 
+  // 清理挂起状态与定时器
   private clearLatent() {
     this.pending = null;
     this.status = "idle";
@@ -660,12 +704,14 @@ export class GraphRunner {
     this.timers = [];
   }
 
+  // 运行失败：进入错误状态并记录信息
   private failRuntime(message: string) {
     this.status = "error";
     this.viewModel = { kind: "error", title: "Runtime Error", body: message };
     this.errors.push(message);
   }
 
+  // 发送快照通知订阅者
   private emit() {
     const snapshot = this.getSnapshot();
     for (const listener of this.listeners) {
@@ -673,6 +719,7 @@ export class GraphRunner {
     }
   }
 
+  // 构建运行元信息
   private createRunMeta(inputs: Record<string, unknown>, presetId?: string, seed?: number): RunMeta {
     const nodeVersions: Record<string, number> = {};
     for (const node of this.rootGraph.nodes) {
@@ -690,6 +737,7 @@ export class GraphRunner {
     };
   }
 
+  // 将图输入写入运行时变量（便于脚本使用）
   private seedGraphInputs() {
     const contract = normalizeContract(this.rootGraph.contract);
     const inputMap = new Map(contract.inputs.map((item) => [item.name, item]));

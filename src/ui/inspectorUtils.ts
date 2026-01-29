@@ -1,8 +1,12 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 检查器工具：端口状态与错误分组
 import type { Graph } from "../engine/ir";
 import type { Registry, PinDef } from "../engine/registry";
 import type { ValidationError } from "../engine/validator";
 import { resolveNodeDefinition } from "../engine/contract";
 
+// 端口状态结构
 export type PinStatus = {
   key: string;
   label: string;
@@ -14,16 +18,19 @@ export type PinStatus = {
   errors: string[];
 };
 
+// 节点端口状态结构
 export type NodePinStatus = {
   inputs: PinStatus[];
   outputs: PinStatus[];
 };
 
+// 节点错误分组结构
 export type NodeErrorGroups = {
   nodeErrors: ValidationError[];
   pinErrors: Map<string, string[]>;
 };
 
+// 按节点分组错误
 export const groupNodeErrors = (
   errors: ValidationError[],
   nodeId: string
@@ -43,6 +50,7 @@ export const groupNodeErrors = (
   return { nodeErrors, pinErrors };
 };
 
+// 计算节点端口连接状态
 export const getNodePinStatus = (
   graph: Graph,
   nodeId: string,

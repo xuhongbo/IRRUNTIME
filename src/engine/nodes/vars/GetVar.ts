@@ -1,5 +1,9 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 读变量节点（旧版）
 import { GameNodeDefinition } from "../../core/Node";
 
+// 读变量节点定义
 export const GetVarNode: GameNodeDefinition = {
   type: 'vars.get',
   version: 1,

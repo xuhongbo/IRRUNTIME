@@ -1,3 +1,5 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
 import React, { useEffect } from "react";
 import { render, waitFor } from "@testing-library/react";
 import type { Graph } from "../../engine/ir";

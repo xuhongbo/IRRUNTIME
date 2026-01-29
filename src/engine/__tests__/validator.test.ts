@@ -1,3 +1,5 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
 import { isAssignable, validateGraph } from "../validator";
 import { registry } from "../registry";
 import type { Registry } from "../registry";

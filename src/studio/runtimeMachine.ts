@@ -1,7 +1,11 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 运行时状态机：包装运行引擎并提供事件式接口
 import { assign, createMachine } from "xstate";
 import type { Graph } from "../engine/ir";
 import type { GraphRuntime, RuntimeSnapshot } from "../engine/runtime";
 
+// 运行时事件：控制执行、重置与断点
 export type RuntimeEvent =
   | { type: "RUN_WITH_INPUTS"; inputs: Record<string, unknown>; presetId?: string; seed?: number }
   | { type: "STEP_WITH_INPUTS"; inputs: Record<string, unknown>; presetId?: string; seed?: number }
@@ -12,11 +16,13 @@ export type RuntimeEvent =
   | { type: "RUNTIME_UPDATED"; snapshot: RuntimeSnapshot }
   | { type: "SET_GRAPH"; graph: Graph };
 
+// 运行时上下文：包含引擎实例与快照
 export type RuntimeContext = {
   runtime: GraphRuntime;
   snapshot: RuntimeSnapshot;
 };
 
+// 创建运行时状态机
 export const createRuntimeMachine = (runtime: GraphRuntime) =>
   createMachine<RuntimeContext, RuntimeEvent>(
     {

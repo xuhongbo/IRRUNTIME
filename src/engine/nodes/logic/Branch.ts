@@ -1,5 +1,9 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 分支节点（旧版）
 import { GameNodeDefinition } from "../../core/Node";
 
+// 条件分支节点定义
 export const IfNode: GameNodeDefinition = {
   type: 'logic.if',
   version: 1,

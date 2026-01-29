@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 图设置面板：编辑输入输出契约与预设
 import React, { useEffect, useMemo, useState } from "react";
 import type { GraphContract, GraphContractPort } from "../engine/ir";
 import Box from "@mui/material/Box";
@@ -19,6 +22,7 @@ import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 
+// 图设置参数
 type GraphSettingsProps = {
   contract: GraphContract;
   inputValues: Record<string, unknown>;
@@ -28,6 +32,7 @@ type GraphSettingsProps = {
   onApplyPresets: (presets: GraphSettingsProps["presets"]) => void;
 };
 
+// 支持的数据类型列表
 const dataTypes: GraphContractPort["type"][] = ["string", "number", "boolean", "json"];
 const typeLabels: Record<GraphContractPort["type"], string> = {
   string: "字符串",
@@ -36,6 +41,7 @@ const typeLabels: Record<GraphContractPort["type"], string> = {
   json: "JSON",
 };
 
+// 图设置组件
 export const GraphSettings = ({
   contract,
   inputValues,
@@ -51,10 +57,12 @@ export const GraphSettings = ({
     { id: string; title: string; description?: string; inputs: string }[]
   >([]);
 
+  // 同步外部契约到草稿
   useEffect(() => {
     setDraft(contract);
   }, [contract]);
 
+  // 同步外部输入值到文本草稿
   useEffect(() => {
     setPresetDraft(
       presets.map((preset) => ({

@@ -1,6 +1,9 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 主题配置：统一颜色与组件样式
 import { createTheme } from "@mui/material/styles";
 
-// Professional Palette (Slate & Indigo)
+// 主题色板
 const palette = {
   primary: {
     main: "#4f46e5", // Indigo-600

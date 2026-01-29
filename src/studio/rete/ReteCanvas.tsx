@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// Rete 画布封装：管理节点渲染、连线与交互事件
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { ClassicPreset, NodeEditor, type BaseSchemes } from "rete";
 import { AreaExtensions, AreaPlugin, Drag } from "rete-area-plugin";
@@ -18,15 +21,18 @@ import { resolveNodeDefinition } from "../../engine/contract";
 
 // --- Helpers ---
 
+// 多选快捷键判断
 export const isMultiSelectModifier = (event: { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }) =>
   Boolean(event.ctrlKey || event.metaKey || event.shiftKey);
 
+// 判断是否点击在背景区域
 export const isBackgroundPointer = (event: { target: EventTarget | null }) => {
   const target = event.target as HTMLElement | null;
   if (!target || typeof target.closest !== "function") return true;
   return !target.closest(".rete-node");
 };
 
+// 判断选中集合是否一致（用于避免重复更新）
 export const selectionMatches = (entities: Map<string, unknown>, selectedNodeIds: string[]) => {
   if (entities.size !== selectedNodeIds.length) return false;
   for (const id of selectedNodeIds) {
@@ -35,6 +41,7 @@ export const selectionMatches = (entities: Map<string, unknown>, selectedNodeIds
   return true;
 };
 
+// 拖拽锁：避免拖拽事件重复触发
 export const isDragLocked = (
   lockMap: Map<string, number>,
   nodeId: string,
@@ -46,12 +53,14 @@ export const isDragLocked = (
   return now - last < lockMs;
 };
 
+// 编辑器管线跳过逻辑：用于同步过程
 export const shouldSkipEditorPipe = (syncingConnections: boolean, syncing: boolean) => {
   if (syncingConnections) return "syncingConnections";
   if (syncing) return "syncing";
   return null;
 };
 
+// 清理过期拖拽锁
 export const pruneDragLocks = (
   lockMap: Map<string, number>,
   now: number,
@@ -67,11 +76,13 @@ export const pruneDragLocks = (
   return removed;
 };
 
+// 生成端口签名，用于检测定义变化
 const buildPinsSignature = (pins: { key: string; kind?: string; dataType?: string; label?: string }[]) =>
   pins
     .map((pin) => `${pin.key}:${pin.kind ?? ""}:${pin.dataType ?? ""}:${pin.label ?? ""}`)
     .join("|");
 
+// 生成节点签名，用于比较节点结构变化
 const buildNodeSignature = (
   node: Graph["nodes"][number],
   resolved: { def: { title?: string }; inputs: { key: string; kind?: string; dataType?: string; label?: string }[]; outputs: { key: string; kind?: string; dataType?: string; label?: string }[] }
@@ -82,6 +93,7 @@ const buildNodeSignature = (
   return `${node.type}@${node.version}:${title}:${inputsSig}::${outputsSig}`;
 };
 
+// 事件引用封装，避免闭包捕获旧函数
 const useEvent = <T extends (...args: never[]) => void>(handler: T) => {
   const handlerRef = useRef(handler);
   useEffect(() => {
@@ -92,6 +104,7 @@ const useEvent = <T extends (...args: never[]) => void>(handler: T) => {
 
 // --- Component ---
 
+// 画布组件参数
 export type ReteCanvasProps = {
   graph: Graph;
   registry: Registry;
@@ -113,6 +126,7 @@ type Schemes = BaseSchemes & {
   Node: ReteNodeData;
 };
 
+// Rete 画布组件：负责节点、连线与交互
 export const ReteCanvas = ({
   graph,
   registry,

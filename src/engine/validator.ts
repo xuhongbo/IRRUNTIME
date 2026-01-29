@@ -1,7 +1,11 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 图结构校验：检测连线、端口、契约与节点属性
 import type { Graph } from "./ir";
 import type { PinDef, Registry } from "./registry";
 import { findContractPort, hasDuplicateNames, normalizeContract, resolveNodeDefinition } from "./contract";
 
+// 校验错误结构：用于界面提示
 export type ValidationError = {
   nodeId?: string;
   pinId?: string;
@@ -9,6 +13,7 @@ export type ValidationError = {
   severity?: "error" | "warning";
 };
 
+// 数据类型是否可赋值（向 JSON 放宽）
 export const isAssignable = (fromType: PinDef["dataType"], toType: PinDef["dataType"]) => {
   if (!fromType || !toType) return true;
   if (fromType === toType) return true;
@@ -16,6 +21,7 @@ export const isAssignable = (fromType: PinDef["dataType"], toType: PinDef["dataT
   return false;
 };
 
+// 校验图：返回错误列表与是否通过
 export const validateGraph = (graph: Graph, registry: Registry) => {
   const errors: ValidationError[] = [];
   const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));

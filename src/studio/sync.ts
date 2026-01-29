@@ -1,14 +1,20 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 跨标签页同步：通过 BroadcastChannel 共享图与命令
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Graph } from "../engine/ir";
 import type { Command } from "./commands";
 
+// 同步消息类型：请求快照、发送快照或命令
 export type SyncMessage =
   | { type: "snapshot-request"; sourceId: string; seq: number }
   | { type: "snapshot"; sourceId: string; seq: number; graph: Graph }
   | { type: "command"; sourceId: string; seq: number; command: Command };
 
+// 同步模式：主编辑器或画布视图
 export type SyncMode = "main" | "canvas";
 
+// 生成当前标签页标识
 export const createSourceId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -16,6 +22,7 @@ export const createSourceId = () => {
   return `source-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 };
 
+// 判断消息是否应该被当前页面接受（去重与过滤自身）
 export const acceptMessage = (
   selfId: string,
   lastSeqBySource: Map<string, number>,
@@ -28,6 +35,7 @@ export const acceptMessage = (
   return true;
 };
 
+// 同步 Hook 配置
 type GraphSyncOptions = {
   graph: Graph;
   mode: SyncMode;
@@ -37,6 +45,7 @@ type GraphSyncOptions = {
   enabled?: boolean;
 };
 
+// 图同步 Hook：封装发送与接收逻辑
 export const useGraphSync = ({
   graph,
   mode,

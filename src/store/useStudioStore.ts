@@ -1,22 +1,29 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 旧版编辑器状态存储（基于 zustand）
 import { create } from "zustand";
 import type { Graph } from "../engine/ir";
 import { sampleGraph } from "../mock/graph";
 import { registry } from "../engine/registry";
 import type { ValidationError } from "../engine/validator";
 
+// 校验状态
 export type ValidationStatus = "idle" | "validating" | "valid" | "invalid";
 
+// 校验状态结构
 export type ValidationState = {
   status: ValidationStatus;
   errors: ValidationError[];
 };
 
+// JSON 编辑状态
 export type JsonState = {
   draft: string;
   dirty: boolean;
   error: string | null;
 };
 
+// 编辑器状态结构
 export type StudioState = {
   graph: Graph;
   lastGoodGraph: Graph;
@@ -31,6 +38,7 @@ export type StudioState = {
   resetJsonDraft: () => void;
 };
 
+// 迁移图与子图版本
 const migrateGraphTree = (graph: Graph) => {
   const main = registry.migrateGraph(graph);
   if (!graph.subgraphs) {
@@ -46,6 +54,7 @@ const migrateGraphTree = (graph: Graph) => {
 const initialGraph = migrateGraphTree(sampleGraph);
 const initialJson = JSON.stringify(initialGraph, null, 2);
 
+// 创建编辑器状态存储
 export const useStudioStore = create<StudioState>((set, get) => ({
   graph: initialGraph,
   lastGoodGraph: initialGraph,

@@ -1,10 +1,15 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 节点工厂：创建节点实例与面板列表
 import type { Graph, NodeInstance, NodePosition } from "../engine/ir";
 import type { NodeDefinition, Registry } from "../engine/registry";
 
+// 生成节点 id
 export const makeNodeId = (type: string, seed: number) => {
   return `${type.toLowerCase()}-${seed}`;
 };
 
+// 基于注册表创建节点实例
 export const createNodeInstance = (
   type: string,
   registry: Registry,
@@ -24,6 +29,7 @@ export const createNodeInstance = (
   };
 };
 
+// 列出全部节点类型（用于调试或面板）
 export const listPaletteItems = (registry: Registry) => {
   return registry
     .listTypes()
@@ -37,6 +43,7 @@ export const listPaletteItems = (registry: Registry) => {
     }));
 };
 
+// 节点分类
 export type NodeCategory =
   | "入口"
   | "流程"
@@ -50,6 +57,7 @@ export type NodeCategory =
   | "转换"
   | "其它";
 
+// 根据类型判断分类
 export const getNodeCategory = (type: string): NodeCategory => {
   if (type === "Start" || type === "End") return "入口";
   if (type === "If" || type === "Equals") return "逻辑";
@@ -64,11 +72,14 @@ export const getNodeCategory = (type: string): NodeCategory => {
   return "其它";
 };
 
+// 判断是否为流程节点（含执行引脚）
 export const isFlowDefinition = (def: NodeDefinition) =>
   def.inputs.some((pin) => pin.kind === "exec") || def.outputs.some((pin) => pin.kind === "exec");
 
+// 判断是否为数据节点
 export const isDataDefinition = (def: NodeDefinition) => !isFlowDefinition(def);
 
+// 列出流程节点
 export const listFlowPaletteItems = (registry: Registry) => {
   return registry
     .listTypes()
@@ -84,6 +95,7 @@ export const listFlowPaletteItems = (registry: Registry) => {
     }));
 };
 
+// 列出数据节点
 export const listDataPaletteItems = (registry: Registry) => {
   return registry
     .listTypes()
@@ -99,6 +111,7 @@ export const listDataPaletteItems = (registry: Registry) => {
     }));
 };
 
+// 列出流程节点类型名
 export const listFlowTypes = (registry: Registry) =>
   registry
     .listTypes()

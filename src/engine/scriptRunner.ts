@@ -1,8 +1,12 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 脚本执行结果：包含输出数据与日志
 export type ScriptRunResult = {
   data: Record<string, unknown>;
   logs: string[];
 };
 
+// 脚本预算：限制执行资源与输出大小
 export type ScriptBudget = {
   timeoutMs: number;
   maxOutputSize: number;
@@ -10,6 +14,7 @@ export type ScriptBudget = {
   maxLogChars: number;
 };
 
+// 默认脚本预算
 const defaultBudget: ScriptBudget = {
   timeoutMs: 500,
   maxOutputSize: 20000,
@@ -17,6 +22,7 @@ const defaultBudget: ScriptBudget = {
   maxLogChars: 500,
 };
 
+// 构建日志收集器，控制日志条数与长度
 const createLogCollector = (budget: ScriptBudget) => {
   const logs: string[] = [];
   const push = (value: string) => {
@@ -29,6 +35,7 @@ const createLogCollector = (budget: ScriptBudget) => {
   return { logs, push };
 };
 
+// 校验输出是否可序列化，避免循环引用与不可序列化类型
 const ensureSerializable = (value: unknown, seen = new Set<unknown>()) => {
   const valueType = typeof value;
   if (valueType === "function" || valueType === "symbol" || valueType === "undefined") {
@@ -51,6 +58,7 @@ const ensureSerializable = (value: unknown, seen = new Set<unknown>()) => {
   Object.values(value as Record<string, unknown>).forEach((item) => ensureSerializable(item, seen));
 };
 
+// 生成可复现的随机数函数
 const createSeededRandom = (seed: number) => {
   let t = seed >>> 0;
   return () => {
@@ -61,12 +69,14 @@ const createSeededRandom = (seed: number) => {
   };
 };
 
+// 创建安全的 Math，替换随机数实现
 const createSafeMath = (rand: () => number) => {
   const safe = Object.create(Math) as typeof Math;
   safe.random = () => rand();
   return safe;
 };
 
+// 创建安全的 Date，屏蔽真实时间
 const createSafeDate = () => {
   return class SafeDate extends Date {
     constructor(...args: ConstructorParameters<typeof Date>) {
@@ -82,6 +92,7 @@ const createSafeDate = () => {
   };
 };
 
+// 安全 console：记录日志但不允许外部副作用
 const createSafeConsole = (logs: string[]) => ({
   log: (...args: unknown[]) => {
     logs.push(args.map((item) => String(item)).join(" "));
@@ -94,6 +105,7 @@ const createSafeConsole = (logs: string[]) => ({
   },
 });
 
+// 在 Worker 中执行脚本（不可用时降级为沙箱执行）
 export const runScriptInWorker = ({
   code,
   inputs,
@@ -113,6 +125,7 @@ export const runScriptInWorker = ({
   maxLogEntries?: number;
   maxLogChars?: number;
 }): Promise<ScriptRunResult> => {
+  // 无 Worker 时直接在沙箱中执行
   if (typeof Worker === "undefined") {
     return Promise.resolve(
       runScriptInSandbox({
@@ -128,6 +141,7 @@ export const runScriptInWorker = ({
     );
   }
   /* istanbul ignore next */
+  // Worker 内执行代码：隔离环境并限制 API
   const workerCode = `
     const createSeededRandom = (seed) => {
       let t = seed >>> 0;
@@ -279,6 +293,7 @@ export const runScriptInWorker = ({
   });
 };
 
+// 在当前线程沙箱执行脚本
 export const runScriptInSandbox = ({
   code,
   inputs,

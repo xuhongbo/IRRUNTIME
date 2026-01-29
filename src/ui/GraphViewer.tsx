@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 图画布视图：渲染 Rete 画布与顶部工具条
 import type { Graph } from "../engine/ir";
 import type { Registry } from "../engine/registry";
 import type { Command } from "../studio/commands";
@@ -25,6 +28,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import DistributeHorizontalIcon from "@mui/icons-material/FormatAlignJustify"; // Approximation
 import DistributeVerticalIcon from "@mui/icons-material/VerticalAlignCenter"; // Approximation
 
+// 画布组件参数
 type GraphViewerProps = {
   graph: Graph;
   registry: Registry;
@@ -45,6 +49,7 @@ type GraphViewerProps = {
   onCommand: (command: Command) => void;
 };
 
+// 图画布组件
 export const GraphViewer = ({
   graph,
   registry,

@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 提示面板：展示 lint 建议并可一键修复
 import type { LintIssue } from "../studio/lint";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -7,12 +10,14 @@ import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Button from "@mui/material/Button";
 
+// 提示面板参数
 type LintPanelProps = {
   issues: LintIssue[];
   onFix: (issue: LintIssue) => void;
   onFocusNode: (nodeId: string) => void;
 };
 
+// 提示面板组件
 export const LintPanel = ({ issues, onFix, onFocusNode }: LintPanelProps) => {
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>

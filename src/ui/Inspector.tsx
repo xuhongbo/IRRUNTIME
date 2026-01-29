@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 节点检查器：查看与编辑节点属性、校验信息与断点
 import React, { useEffect, useMemo, useState } from "react";
 import type { Graph, NodeIO } from "../engine/ir";
 import type { FormFieldDef, Registry } from "../engine/registry";
@@ -23,6 +26,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import Collapse from "@mui/material/Collapse";
 
+// 检查器组件参数
 type InspectorProps = {
   graph: Graph;
   nodeId: string | null;
@@ -35,6 +39,7 @@ type InspectorProps = {
   onToggleBreakpoint: (nodeId: string) => void;
 };
 
+// 折叠分区标题组件
 const SectionHeader = ({ title, defaultOpen = true, children }: { title: string, defaultOpen?: boolean, children: React.ReactNode }) => {
     const [open, setOpen] = useState(defaultOpen);
     return (
@@ -63,6 +68,7 @@ const SectionHeader = ({ title, defaultOpen = true, children }: { title: string,
     );
 };
 
+// 检查器组件
 export const Inspector = ({
   graph,
   nodeId,
@@ -74,10 +80,12 @@ export const Inspector = ({
   hasBreakpoint,
   onToggleBreakpoint,
 }: InspectorProps) => {
+  // 当前选中节点与定义
   const node = useMemo(() => graph.nodes.find((n) => n.id === nodeId) ?? null, [graph, nodeId]);
   const def = node ? registry.get(node.type, node.version) ?? registry.getLatest(node.type) : null;
   const [draftProps, setDraftProps] = useState<Record<string, unknown>>({});
   const [jsonErrors, setJsonErrors] = useState<Record<string, string>>({});
+  // 根据契约为图输入/输出节点补齐下拉选项
   const resolvedForm = useMemo<FormFieldDef[]>(() => {
     if (!node) return def?.form ?? [];
     if (!def) return [];
@@ -106,6 +114,7 @@ export const Inspector = ({
     );
   }, [def, graph.contract, node]);
 
+  // 切换节点时重置草稿属性
   useEffect(() => {
     if (node) {
       setDraftProps({ ...node.props });

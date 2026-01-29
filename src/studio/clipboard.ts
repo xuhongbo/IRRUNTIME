@@ -1,12 +1,18 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 剪贴板工具：复制、粘贴与重复节点
 import type { Graph } from "../engine/ir";
 
+// 剪贴板载荷：节点与边的子集
 export type ClipboardPayload = {
   nodes: Graph["nodes"][number][];
   edges: Graph["edges"][number][];
 };
 
+// 默认粘贴偏移，避免完全重叠
 export const defaultPasteOffset = { x: 24, y: 24 };
 
+// 复制选中节点及其内部连线
 export const copySelection = (graph: Graph, nodeIds: string[]): ClipboardPayload | null => {
   if (nodeIds.length === 0) return null;
   const nodeSet = new Set(nodeIds);
@@ -17,6 +23,7 @@ export const copySelection = (graph: Graph, nodeIds: string[]): ClipboardPayload
   return { nodes, edges };
 };
 
+// 粘贴载荷并生成新 id
 export const pasteSelection = (
   payload: ClipboardPayload,
   offset: { x: number; y: number }
@@ -44,6 +51,7 @@ export const pasteSelection = (
   return { nodes, edges };
 };
 
+// 重复选中内容（复制并粘贴）
 export const duplicateSelection = (
   graph: Graph,
   nodeIds: string[],
@@ -54,6 +62,7 @@ export const duplicateSelection = (
   return pasteSelection(payload, offset);
 };
 
+// 计算选中节点包围盒
 export const getSelectionBounds = (nodes: Graph["nodes"][number][]) => {
   if (nodes.length === 0) {
     return { minX: 0, minY: 0, maxX: 0, maxY: 0 };

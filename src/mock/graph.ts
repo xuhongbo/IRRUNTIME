@@ -1,5 +1,9 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 示例图：用于初始化编辑器
 import type { Graph } from "../engine/ir";
 
+// 示例图结构
 export const sampleGraph: Graph = {
   id: "main",
   version: 1,

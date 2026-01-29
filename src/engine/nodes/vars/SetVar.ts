@@ -1,5 +1,9 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 写变量节点（旧版）
 import { GameNodeDefinition } from "../../core/Node";
 
+// 写变量节点定义
 export const SetVarNode: GameNodeDefinition = {
   type: 'vars.set',
   version: 1,

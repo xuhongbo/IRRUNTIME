@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 应用入口与主界面组装
 import { useEffect, useMemo, useRef, useState } from "react";
 import { registry } from "./engine/registry";
 import type { Graph } from "./engine/ir";
@@ -59,6 +62,7 @@ import { theme } from "./theme";
 const DRAWER_WIDTH = 280;
 const RIGHT_DRAWER_WIDTH = 320;
 
+// 应用入口：根据路径切换为画布纯视图或完整编辑器
 export default function App() {
   const pathname = typeof window !== "undefined" ? window.location.pathname : "/";
   if (pathname === "/canvas") {
@@ -77,6 +81,7 @@ export default function App() {
   );
 }
 
+// 主编辑器应用：负责编辑、运行、校验、同步与面板组织
 const StudioApp = () => {
   if (typeof window !== "undefined") {
     const enabled = (window as unknown as { __STUDIO_DEBUG__?: boolean }).__STUDIO_DEBUG__;
@@ -84,9 +89,11 @@ const StudioApp = () => {
       console.info("app:render");
     }
   }
+  // 编辑器状态与操作入口
   const { state, send, updateGraph, ecs } = useStudio();
   const graph = state.context.graph;
   const graphRef = useRef(graph);
+  // 运行时快照与运行指令发送
   const { snapshot, send: runtimeSend } = useRuntime(graph, registry);
   const [tab, setTab] = useState<"studio" | "json" | "graph">("studio");
   const graphCenter = useMemo(() => getGraphCenter(graph), [graph]);
@@ -111,6 +118,7 @@ const StudioApp = () => {
   const lintIssues = useMemo(() => lintGraph(graph), [graph]);
 
   // ... (Hook logic remains unchanged)
+  // 根据契约生成默认输入（用于运行面板的初始值）
   const buildDefaultInputs = (nextContract: typeof contract, current: Record<string, unknown>) => {
     const result: Record<string, unknown> = {};
     for (const input of nextContract.inputs) {
@@ -130,18 +138,22 @@ const StudioApp = () => {
     return result;
   };
 
+  // 维护 graph 引用，避免闭包引用过期
   useEffect(() => {
     graphRef.current = graph;
   }, [graph]);
 
+  // 将运行时快照同步到 ECS 状态，便于渲染节点状态
   useEffect(() => {
     setRuntimeState(ecs, snapshot);
   }, [ecs, snapshot]);
 
+  // 当契约变化时重建输入默认值
   useEffect(() => {
     setGraphInputs((current) => buildDefaultInputs(contract, current));
   }, [contract]);
 
+  // 维护预设选择的有效性
   useEffect(() => {
     if (presets.length === 0) {
       setSelectedPresetId(null);
@@ -152,10 +164,12 @@ const StudioApp = () => {
     }
   }, [presets, selectedPresetId]);
 
+  // 预设变化时应用预设输入
   useEffect(() => {
     applyPresetInputs(selectedPresetId);
   }, [selectedPresetId]);
 
+  // 在本地编辑时推入历史栈，远程同步不计入历史
   useEffect(() => {
     if (historyActionRef.current === "remote") {
       historyActionRef.current = null;
@@ -170,6 +184,7 @@ const StudioApp = () => {
     historyRef.current = pushHistory(historyRef.current, graphRef.current);
   }, [graph]);
 
+  // 跨标签页同步：接收远程图或命令并应用
   const sync = useGraphSync({
     graph,
     mode: "main",
@@ -187,6 +202,7 @@ const StudioApp = () => {
     },
   });
 
+  // 本地变更后发出快照同步
   useEffect(() => {
     if (pendingSnapshotRef.current) {
       sync.sendSnapshot(graph);
@@ -194,6 +210,7 @@ const StudioApp = () => {
     }
   }, [graph, sync]);
 
+  // JSON 视图应用时发送同步命令
   useEffect(() => {
     if (!pendingApplyJsonRef.current) return;
     pendingApplyJsonRef.current = false;

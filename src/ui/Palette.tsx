@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 节点面板：搜索并添加节点到画布
 import { useMemo, useRef, useState } from "react";
 import type { Graph, NodePosition } from "../engine/ir";
 import type { Registry } from "../engine/registry";
@@ -20,6 +23,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import Switch from "@mui/material/Switch";
 
+// 面板参数
 type PaletteProps = {
   graph: Graph;
   registry: Registry;
@@ -27,6 +31,7 @@ type PaletteProps = {
   onAddNode: (node: Graph["nodes"][number]) => void;
 };
 
+// 根据节点类型返回图标
 const getNodeIcon = (type: string) => {
   if (type.startsWith("Const") || type.startsWith("To")) return <DataObjectIcon fontSize="small" sx={{ color: "primary.main" }} />;
   if (type === "If" || type === "Equals" || type === "WaitForChoice") return <CallSplitIcon fontSize="small" sx={{ color: "secondary.main" }} />;
@@ -36,6 +41,7 @@ const getNodeIcon = (type: string) => {
   return <WidgetsIcon fontSize="small" sx={{ color: "text.secondary" }} />;
 };
 
+// 节点面板组件
 export const Palette = ({ graph, registry, center, onAddNode }: PaletteProps) => {
   const [query, setQuery] = useState("");
   const [showDataNodes, setShowDataNodes] = useState(false);

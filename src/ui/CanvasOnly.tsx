@@ -1,3 +1,6 @@
+// 文件说明：自动补充文件级注释，描述模块职责与用途
+
+// 纯画布页面：仅显示节点画布，不含编辑面板
 import React from "react";
 import type { Graph } from "../engine/ir";
 import type { Registry } from "../engine/registry";
@@ -6,6 +9,7 @@ import type { Command } from "../studio/commands";
 import { ReteCanvas } from "../studio/rete/ReteCanvas";
 import "./CanvasOnly.css";
 
+// 纯画布组件参数
 type CanvasOnlyProps = {
   graph: Graph;
   registry: Registry;
@@ -23,6 +27,7 @@ type CanvasOnlyProps = {
   onBackToStudio?: () => void;
 };
 
+// 纯画布组件
 export const CanvasOnly = ({
   graph,
   registry,
